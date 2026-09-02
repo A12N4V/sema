@@ -1,0 +1,15 @@
+# Python
+backend/venv/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+
+# EEGvis runtime data (uploaded files, session working dirs)
+.eegvis/
+
+# OS
+.DS_Store
