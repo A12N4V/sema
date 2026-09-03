@@ -47,6 +47,7 @@ def _result(session) -> dict:
             "graph": [c.to_dict() for c in container_graph(session)],
             "capabilities": sorted(session_capabilities(session)),
             "history": session.ledger.to_list(),
+            "head": session.ledger.head,
             "session": {"session_id": session.id, "filename": session.filename, **raw_summary(session.raw)},
         }
 
