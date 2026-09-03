@@ -7,6 +7,7 @@ import { StatusTicker } from "./components/shell/StatusTicker";
 import { Toolbar } from "./components/shell/Toolbar";
 import { FKeyStrip } from "./components/shell/FKeyStrip";
 import { Settings } from "./components/shell/Settings";
+import { CommandPalette } from "./components/ops/CommandPalette";
 import { PANEL_BY_FKEY } from "./components/shell/panelRegistry";
 import { api } from "./api/client";
 import { useStore } from "./store/store";
@@ -41,9 +42,17 @@ function App() {
   // global keybindings — media-style, not a command language
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const s = useStore.getState();
+
+      // ⌘K / Ctrl+K — command palette (works even from a focused input)
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        if (s.session) s.setPaletteOpen(!s.paletteOpen);
+        return;
+      }
+
       const el = document.activeElement;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT")) return;
-      const s = useStore.getState();
 
       if (/^F[1-8]$/.test(e.key)) {
         const pid = PANEL_BY_FKEY[e.key];
@@ -121,6 +130,7 @@ function App() {
         <Connect />
       )}
       <Settings />
+      <PaletteMount />
       <Toaster
         theme={resolvedTheme}
         position="bottom-right"
@@ -136,6 +146,14 @@ function App() {
       />
     </div>
   );
+}
+
+function PaletteMount() {
+  const open = useStore((s) => s.paletteOpen);
+  const setOpen = useStore((s) => s.setPaletteOpen);
+  const hasSession = useStore((s) => !!s.session);
+  if (!hasSession || !open) return null;
+  return <CommandPalette onClose={() => setOpen(false)} />;
 }
 
 export default App;

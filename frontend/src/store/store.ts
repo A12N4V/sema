@@ -161,9 +161,11 @@ interface SettingsSlice {
   /** bumped whenever the effective theme changes — canvas panels key repaints off it */
   themeTick: number;
   settingsOpen: boolean;
+  paletteOpen: boolean;
   setTheme: (t: Theme) => void;
   syncSystemTheme: () => void;
   setSettingsOpen: (open: boolean) => void;
+  setPaletteOpen: (open: boolean) => void;
 }
 
 const settingsSlice: StateCreator<Store, [], [], SettingsSlice> = (set, get) => {
@@ -173,6 +175,7 @@ const settingsSlice: StateCreator<Store, [], [], SettingsSlice> = (set, get) => 
     resolvedTheme: resolved(initial),
     themeTick: 0,
     settingsOpen: false,
+    paletteOpen: false,
     setTheme: (theme) => {
       const resolvedTheme = applyTheme(theme);
       set({ theme, resolvedTheme, themeTick: get().themeTick + 1 });
@@ -183,6 +186,7 @@ const settingsSlice: StateCreator<Store, [], [], SettingsSlice> = (set, get) => 
       if (resolvedTheme !== get().resolvedTheme) set({ resolvedTheme, themeTick: get().themeTick + 1 });
     },
     setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+    setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
   };
 };
 

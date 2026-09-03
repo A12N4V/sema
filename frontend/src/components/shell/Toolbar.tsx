@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, Waves, Activity, Anchor, MapPin, Repeat, CircleSlash, Layers, Download } from "lucide-react";
+import { ChevronDown, Waves, Activity, Anchor, MapPin, Repeat, CircleSlash, Layers, Download, Plus } from "lucide-react";
 import { api } from "../../api/client";
 import { applyOp, runOp, MONTAGES } from "../../lib/ops";
 import { useStore } from "../../store/store";
@@ -49,6 +49,7 @@ const rowLabel = "mb-1.5 block text-xs text-fg-dim";
 export function Toolbar() {
   const session = useStore((s) => s.session);
   const focusPanel = useStore((s) => s.focusPanel);
+  const setPaletteOpen = useStore((s) => s.setPaletteOpen);
   const id = session?.session_id;
   if (!session || !id) return null;
 
@@ -56,6 +57,15 @@ export function Toolbar() {
 
   return (
     <div className="flex h-9 shrink-0 items-stretch border-b border-seam bg-bg">
+      <button
+        onClick={() => setPaletteOpen(true)}
+        className="flex h-full items-center gap-1.5 border-r border-seam px-3 text-sm font-medium text-fg-dim transition-colors hover:bg-panel-2 hover:text-fg"
+        title="Run an MNE operation  (⌘K)"
+      >
+        <Plus size={13} /> Operation
+        <span className="mono ml-1 text-2xs text-fg-faint">⌘K</span>
+      </button>
+
       {/* filter */}
       <Menu label="Filter" icon={<Waves size={13} />}>
         {(close) => <FilterForm id={id} onDone={close} />}
