@@ -19,9 +19,8 @@ from typing import Any
 
 import mne
 
+from app.core.paths import SESSIONS_DIR as WORKDIR
 from app.services.ledger import Ledger, LedgerEntry
-
-WORKDIR = Path.home() / ".eegvis" / "sessions"
 
 
 def _dir(session_id: str) -> Path:

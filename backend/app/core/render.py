@@ -166,7 +166,8 @@ _CACHE_BUDGET = 400  # PNGs per session before LRU eviction
 
 
 def _cache_dir(session) -> Path:
-    d = Path.home() / ".eegvis" / "sessions" / session.id / "render-cache"
+    from app.core.paths import SESSIONS_DIR
+    d = SESSIONS_DIR / session.id / "render-cache"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
