@@ -28,13 +28,15 @@ from app.core.spectral_ops import BANDS, compute_band_power  # noqa: E402
 
 
 class RenderSpec(BaseModel):
-    view: str = Field(..., description="topomap | sensors | field3d | ica_component | ica_properties")
+    view: str = Field(..., description="topomap | sensors | field3d | brain | ica_component | ica_properties")
     source: Optional[str] = Field(None, description="topomap: 'cursor' | 'band'")
-    t: Optional[float] = Field(None, description="cursor time in seconds (topomap/field3d)")
+    t: Optional[float] = Field(None, description="cursor time in seconds (topomap/field3d/brain)")
     band: Optional[str] = Field(None, description="delta|theta|alpha|beta|gamma (topomap source='band')")
     component: Optional[int] = Field(None, description="ICA component index")
     azimuth: float = Field(-35.0, description="field3d camera azimuth (deg)")
     elevation: float = Field(16.0, description="field3d camera elevation (deg)")
+    hemi: str = Field("lh", description="brain: lh | rh | both")
+    brain_view: str = Field("lateral", description="brain: lateral | medial | dorsal | ventral")
     width: int = Field(320, ge=80, le=1400)
     height: int = Field(320, ge=80, le=1400)
 
@@ -43,6 +45,7 @@ class RenderSpec(BaseModel):
         tb = None if self.t is None else round(self.t, 1)
         parts = [self.view, self.source or "", str(tb), self.band or "",
                  str(self.component), f"{self.azimuth:.0f},{self.elevation:.0f}",
+                 self.hemi, self.brain_view,
                  f"{self.width}x{self.height}", state_hash]
         return hashlib.sha1("|".join(parts).encode()).hexdigest()[:16]
 
@@ -107,6 +110,18 @@ def _ica_properties(ica: mne.preprocessing.ICA, raw: mne.io.BaseRaw, idx: int, s
     return _fig_to_png(figs[0], max(spec.width, 520), max(spec.height, 420))
 
 
+def _brain(session, spec: RenderSpec) -> bytes:
+    from app.core import source
+
+    try:
+        return source.render_brain(
+            session, t=spec.t or 0.0, hemi=spec.hemi, view=spec.brain_view,
+            width=spec.width, height=spec.height,
+        )
+    except source.SourceError as e:
+        raise ValueError(str(e))
+
+
 def _field3d(raw: mne.io.BaseRaw, spec: RenderSpec) -> bytes:
     from app.core import render3d, wire
 
@@ -144,6 +159,8 @@ def render(session, spec: RenderSpec) -> bytes:
         png = _sensors(raw, spec)
     elif spec.view == "field3d":
         png = _field3d(raw, spec)
+    elif spec.view == "brain":
+        png = _brain(session, spec)
     elif spec.view in ("ica_component", "ica_properties"):
         if session.ica is None:
             raise ValueError("No ICA fitted yet")

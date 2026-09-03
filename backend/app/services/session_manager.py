@@ -100,6 +100,8 @@ class Session:
     raw: mne.io.BaseRaw
     epochs: Optional[mne.Epochs] = None
     ica: Optional[mne.preprocessing.ICA] = None
+    stc: Optional[Any] = None                     # mne.SourceEstimate (recomputable, not bundled)
+    stc_meta: dict = field(default_factory=dict)
     created_at: float = field(default_factory=time.time)
     last_used: float = field(default_factory=time.time)
     # Held by every op that touches raw/epochs/ica. Callers on other threads
@@ -224,6 +226,19 @@ class Session:
             info_before=before, info_after=_brief(self.raw),
             replayable=False,   # annotation ops aren't in the replay dispatch
         )
+
+    @_synchronized
+    def compute_source(self, method: str, center_t: float) -> None:
+        from app.core import source
+        meta = source.compute_source_estimate(self, method=method, center_t=center_t)
+        self.ledger.append(
+            "compute_source", {"method": method},
+            label=f"Source estimate ({method})",
+            template="# stc = apply_inverse_raw(raw, inverse_operator, 1/9, method={method!r})",
+            info_before=_brief(self.raw), info_after=_brief(self.raw),
+            replayable=False,
+        )
+        _ = meta
 
     @_synchronized
     def interpolate_bads(self, reset_bads: bool = True) -> None:

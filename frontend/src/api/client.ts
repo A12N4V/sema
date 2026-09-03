@@ -242,6 +242,12 @@ export const api = {
   getJob: (jobId: string) => req<Job>(`/api/jobs/${jobId}`),
   sessionJobs: (id: string) => req<{ jobs: Job[] }>(`/api/sessions/${id}/jobs`),
 
+  // --- source localisation ---
+  sourceStatus: (id: string) =>
+    req<{ fsaverage_ready: boolean; has_stc: boolean; meta: Record<string, unknown> }>(`/api/sessions/${id}/source`),
+  sourceTimecourse: (id: string) =>
+    req<{ t: number[]; y: number[]; vertex: number; label: string; method: string }>(`/api/sessions/${id}/source/timecourse`),
+
   /** Server-rendered figure (topomap / sensors / ICA panel) → object-URL for <img>. */
   render: async (id: string, spec: Record<string, unknown>): Promise<string> => {
     const res = await fetch(`${BASE}/api/sessions/${id}/render`, {

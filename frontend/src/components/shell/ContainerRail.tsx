@@ -76,13 +76,19 @@ export function ContainerRail({
       {ghosts.map((g) => {
         const Icon = KIND_ICON[g.kind] ?? Waves;
         return (
-          <div
+          <button
             key={g.id}
+            onClick={() => setActive(g.id)}
             title={g.hint}
-            className="flex items-center gap-2 rounded-xs border border-dashed border-seam px-2 py-1 text-xs text-fg-faint"
+            className={clsx(
+              "flex items-center gap-2 rounded-xs border border-dashed px-2 py-1 text-left text-xs transition-colors",
+              active === g.id
+                ? "border-accent bg-accent/15 text-accent"
+                : "border-seam text-fg-faint hover:text-fg-dim",
+            )}
           >
             <Icon size={12} className="shrink-0" /> <span className="truncate">{g.label}</span>
-          </div>
+          </button>
         );
       })}
 

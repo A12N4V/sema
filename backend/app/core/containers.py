@@ -86,6 +86,17 @@ def container_graph(session: "Session") -> list[ContainerRef]:
                 op_id="epochs",
             )
         )
+    if getattr(session, "stc", None) is not None:
+        meta = session.stc_meta
+        nodes.append(
+            ContainerRef(
+                id="source",
+                kind=ContainerKind.STC,
+                label=f"Source · {meta.get('method', 'dSPM')}",
+                parent_id="raw",
+                op_id="compute_source",
+            )
+        )
     return nodes
 
 
@@ -105,4 +116,12 @@ def session_capabilities(session: "Session") -> set[str]:
         caps.add("ica")
     if session.epochs is not None:
         caps.add("epochs")
+    if getattr(session, "stc", None) is not None:
+        caps.add("source")
+    try:
+        from app.core.source import fsaverage_ready
+        if fsaverage_ready():
+            caps.add("fsaverage")
+    except Exception:
+        pass
     return caps

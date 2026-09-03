@@ -154,3 +154,21 @@ register(Operation(
     run=lambda s, p: s.fit_ica(p.n_components, p.method),
     doc="Fit an ICA decomposition (best on data high-passed >= 1 Hz). mne.preprocessing.ICA",
 ))
+
+
+# --- source ----------------------------------------------------------
+
+class SourceParams(OpParams):
+    method: str = Field("dSPM", description="dSPM | MNE | sLORETA | eLORETA")
+    center_t: float = Field(0.0, ge=0, description="Centre of the ~8 s window to localise (seconds)")
+
+
+register(Operation(
+    id="compute_source", stage="Source", label="Compute source estimate",
+    inputs=RAW, params_model=SourceParams, output=ContainerKind.STC,
+    long_running=True, requires=("montage",),
+    run=lambda s, p: s.compute_source(p.method, p.center_t),
+    doc=("Template source localisation: fsaverage forward + ad-hoc covariance + "
+         "minimum-norm inverse over a window around the cursor. First run fetches "
+         "fsaverage (~770 MB) and builds the forward solution (~15 s)."),
+))
