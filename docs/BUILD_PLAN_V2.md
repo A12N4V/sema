@@ -36,12 +36,16 @@ verified in-app**. Additive: the older per-op routes still work alongside `/ops`
 
 **What the shell does now:** routed `/s/:id` (survives refresh *and* a server restart —
 sessions autosave to `~/.eegvis/sessions/` and rehydrate on demand) · container-graph rail
-with ghost nodes · modular card canvas with per-container presets · ⌘K palette generating
-forms from the registry (montage picker is a real dropdown; ~9 ops) · real MNE topomap/sensor
-cards via the render service (the fake "Scalp field" is gone) · provenance filmstrip with fork
-markers + checkout · transport (play/scrub/speed) · one context inspector (channel /
-component / step) · ICA setup wizard · Connect with a format grid + `mne.datasets` picker +
-recent sessions.
+with ghost nodes · the **"Workstation" layout** (raw default): left column = waveform
+workflow (70) / original pristine recording (20) / transport; right column = topography +
+**3D scalp field** on top, spectrum + band-power below · other presets use the modular card
+canvas · ⌘K palette generating forms from the registry (montage picker is a real dropdown;
+~9 ops) · real MNE topomap/sensor cards + a **PyVista-rendered 3D scalp field** (Perrin
+spherical-spline interpolation on a head surface, cursor-linked — sensor space, not yet a
+cortical source estimate) via the render service (`core/render3d.py`) · theme-matched heatmap
+(melts into the panel, no more magma) · provenance filmstrip with fork markers + checkout ·
+one context inspector · ICA setup wizard · Connect with a format grid + `mne.datasets` picker
++ recent sessions.
 
 **The priority list (P0.1–P0.12 + P1) is done**, except P0.8 (deferred). Small follow-ups:
 a card-grid density pass, and porting the ICA "Apply" / component-inspect paths onto the
