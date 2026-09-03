@@ -71,6 +71,9 @@ _REPLAY_DISPATCH = {
         match_case=False, on_missing="warn", verbose="ERROR",
     ),
     "set_bads": lambda raw, p: _set_bads(raw, p["bads"]),
+    "interpolate_bads": lambda raw, p: raw.interpolate_bads(
+        reset_bads=p["reset_bads"], verbose="ERROR"
+    ),
 }
 
 
@@ -188,6 +191,22 @@ class Session:
             "set_bads", {"bads": list(bads)},
             label=f"Bad channels: {', '.join(bads) if bads else '(none)'}",
             template="raw.info['bads'] = {bads}",
+            info_before=before, info_after=_brief(self.raw),
+        )
+
+    @_synchronized
+    def interpolate_bads(self, reset_bads: bool = True) -> None:
+        bads = list(self.raw.info["bads"])
+        if not bads:
+            raise ValueError("No bad channels marked — nothing to interpolate")
+        if self.raw.get_montage() is None:
+            raise ValueError("Interpolation needs a montage (electrode positions)")
+        before = _brief(self.raw)
+        self.raw.interpolate_bads(reset_bads=reset_bads, verbose="ERROR")
+        self.ledger.append(
+            "interpolate_bads", {"reset_bads": reset_bads, "channels": bads},
+            label=f"Interpolate {', '.join(bads)}",
+            template="raw.interpolate_bads(reset_bads={reset_bads})",
             info_before=before, info_after=_brief(self.raw),
         )
 

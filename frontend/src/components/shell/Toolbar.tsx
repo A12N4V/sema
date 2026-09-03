@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronDown, Waves, Activity, Anchor, MapPin, Repeat, CircleSlash, Layers, Download } from "lucide-react";
 import { api } from "../../api/client";
-import { applyOp, MONTAGES } from "../../lib/ops";
+import { applyOp, runOp, MONTAGES } from "../../lib/ops";
 import { useStore } from "../../store/store";
 
 /* ------------------------------------------------------------------ menu */
@@ -83,7 +83,7 @@ export function Toolbar() {
 
       {/* bad channels */}
       <Menu label="Bad channels" icon={<CircleSlash size={13} />} width={260}>
-        {(close) => <BadForm id={id} chans={chans} bads={session.bads} onDone={close} />}
+        {(close) => <BadForm id={id} chans={chans} bads={session.bads} hasMontage={session.has_montage} onDone={close} />}
       </Menu>
 
       <div className="my-2 w-px bg-seam" />
@@ -207,8 +207,9 @@ function ResampleForm({ id, sfreq, onDone }: { id: string; sfreq: number; onDone
   );
 }
 
-function BadForm({ id, chans, bads, onDone }: { id: string; chans: string[]; bads: string[]; onDone: () => void }) {
+function BadForm({ id, chans, bads, hasMontage, onDone }: { id: string; chans: string[]; bads: string[]; hasMontage: boolean; onDone: () => void }) {
   const [set, setSet] = useState<Set<string>>(new Set(bads));
+  const [busy, setBusy] = useState(false);
   const toggle = (ch: string) => setSet((prev) => {
     const next = new Set(prev);
     if (next.has(ch)) next.delete(ch);
@@ -218,6 +219,16 @@ function BadForm({ id, chans, bads, onDone }: { id: string; chans: string[]; bad
   const submit = async () => {
     await applyOp(() => api.setBads(id, [...set]), `Bad: ${[...set].join(", ") || "(none)"}`);
     onDone();
+  };
+  const interpolate = async () => {
+    setBusy(true);
+    try {
+      await applyOp(() => api.setBads(id, [...set]), `Bad: ${[...set].join(", ")}`);
+      await runOp("interpolate_bads", { reset_bads: true }, `Interpolated ${[...set].join(", ")}`);
+      onDone();
+    } finally {
+      setBusy(false);
+    }
   };
   return (
     <div>
@@ -231,6 +242,14 @@ function BadForm({ id, chans, bads, onDone }: { id: string; chans: string[]; bad
         ))}
       </div>
       <button className={applyBtn} onClick={submit}>Apply</button>
+      <button
+        className="mt-1.5 w-full rounded-xs border border-seam py-1.5 text-sm text-fg-dim transition-colors hover:border-seam-bright hover:text-fg disabled:opacity-40"
+        onClick={interpolate}
+        disabled={busy || set.size === 0 || !hasMontage}
+        title={!hasMontage ? "Set a montage first" : "Apply, then spherical-spline interpolate and clear the bad list"}
+      >
+        {busy ? "Interpolating…" : "Apply + interpolate"}
+      </button>
     </div>
   );
 }

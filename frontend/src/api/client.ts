@@ -92,6 +92,37 @@ export interface HistoryResult {
   has_ica: boolean;
 }
 
+/** A node in the session's container graph (v2 — the left rail renders this). */
+export interface ContainerRef {
+  id: string;
+  kind: "raw" | "epochs" | "evoked" | "spectrum" | "tfr" | "ica" | "forward" | "covariance" | "inverse" | "stc" | "dipole";
+  label: string;
+  parent_id: string | null;
+  op_id: string | null;
+  created_at: number;
+}
+
+export interface OpSchema {
+  id: string;
+  stage: string;
+  label: string;
+  inputs: string[];
+  output: string | null;
+  long_running: boolean;
+  requires: string[];
+  doc: string;
+  params_schema: Record<string, unknown>;
+}
+
+/** Response of POST /sessions/{id}/ops — the generic operation dispatch. */
+export interface OpResult {
+  op_id: string;
+  graph: ContainerRef[];
+  capabilities: string[];
+  history: LedgerEntry[];
+  session: SessionInfo;
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, detail: string) {
@@ -163,6 +194,14 @@ export const api = {
   history: (id: string) => req<HistoryResult>(`/api/sessions/${id}/history`),
   revert: (id: string, to_seq: number) =>
     req<SessionInfo>(`/api/sessions/${id}/revert`, j({ to_seq })),
+
+  // --- operations (v2 registry — one endpoint for every MNE op) ---
+  listOps: (input?: string) =>
+    req<{ operations: OpSchema[] }>(`/api/ops${input ? `?input=${input}` : ""}`),
+  runOp: (id: string, op_id: string, params: Record<string, unknown> = {}) =>
+    req<OpResult>(`/api/sessions/${id}/ops`, j({ op_id, params })),
+  graph: (id: string) =>
+    req<{ graph: ContainerRef[]; capabilities: string[] }>(`/api/sessions/${id}/graph`),
 
   // --- ICA ---
   fitIca: (id: string, n_components: number, method = "fastica") =>

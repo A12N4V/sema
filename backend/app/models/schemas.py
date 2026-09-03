@@ -104,3 +104,11 @@ class RevertRequest(BaseModel):
 class FieldRequest(BaseModel):
     t: float = Field(..., ge=0, description="Time in seconds; nearest sample is used")
     channels: Optional[list[str]] = None
+
+
+class OpRequest(BaseModel):
+    """Generic operation dispatch — see core/operations and api/ops.py."""
+    op_id: str = Field(..., description="Registered operation id, e.g. 'filter'")
+    params: dict = Field(default_factory=dict, description="Params for the op's schema")
+    input_ids: list[str] = Field(default_factory=lambda: ["raw"],
+                                 description="Container ids the op consumes")
