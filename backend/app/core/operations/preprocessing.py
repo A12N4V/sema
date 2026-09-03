@@ -32,7 +32,7 @@ register(Operation(
 
 
 class NotchParams(OpParams):
-    freqs: list[float] = Field(default_factory=lambda: [60.0],
+    freqs: list[float] = Field([60.0],
                                description="Line-noise frequencies to notch, e.g. [60] or [50, 100]")
 
 

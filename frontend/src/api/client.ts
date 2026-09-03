@@ -19,6 +19,12 @@ export interface SessionInfo {
   has_montage: boolean;
   annotations: { onset: number; duration: number; description: string }[];
   meas_date: string | null;
+  modalities: {
+    primary: string[];
+    aux: string[];
+    channel_types: string[];
+    type_counts: Record<string, number>;
+  };
 }
 
 /** The one wire shape every time-series panel parses. */
@@ -80,6 +86,8 @@ export interface LedgerEntry {
   label: string;
   rendered: string;
   template: string;
+  parent: number;
+  on_path: boolean;
   ts: number;
   info_before: Record<string, unknown>;
   info_after: Record<string, unknown>;
@@ -88,6 +96,8 @@ export interface LedgerEntry {
 
 export interface HistoryResult {
   entries: LedgerEntry[];
+  head: number;
+  leaves: number[];
   montage_name: string | null;
   has_ica: boolean;
 }
@@ -138,6 +148,7 @@ export interface Job {
   progress: number;
   detail: string;
   error: string | null;
+  result: Record<string, unknown>;
   created_at: number;
   started_at: number | null;
   finished_at: number | null;
@@ -179,6 +190,10 @@ const j = (body: unknown): RequestInit => ({ method: "POST", body: JSON.stringif
 export const api = {
   // --- session lifecycle ---
   demo: () => req<SessionInfo>("/api/sessions/demo", { method: "POST" }),
+  datasetCatalog: () =>
+    req<{ datasets: { name: string; label: string; modality: string }[] }>("/api/datasets"),
+  openDataset: (name: string) =>
+    req<{ job_id: string; state: string; dataset: string }>(`/api/datasets/${name}/open`, { method: "POST" }),
   uploadFile: (file: File) => {
     const form = new FormData();
     form.append("file", file);

@@ -29,12 +29,13 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState<OpSchema | null>(null);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const active = useStore((s) => s.activeContainerId);
 
   useEffect(() => {
-    api.listOps("raw").then((r) => setOps(r.operations)).catch(() => setOps([]));
+    api.listOps(active).then((r) => setOps(r.operations)).catch(() => setOps([]));
     const t = setTimeout(() => inputRef.current?.focus(), 30);
     return () => clearTimeout(t);
-  }, []);
+  }, [active]);
 
   useEffect(() => {
     const onEsc = (e: KeyboardEvent) => {
@@ -91,7 +92,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Run an operation on Raw…"
+              placeholder={`Run an operation on ${active}…`}
               className="flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-fg-faint"
             />
           )}

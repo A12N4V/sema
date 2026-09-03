@@ -24,8 +24,7 @@ export async function applyOp(
   try {
     const info = await run();
     store().patchSession(info);
-    await store().refreshHistory();
-    await store().loadLayout();
+    await Promise.all([store().refreshHistory(), store().loadLayout(), store().refreshGraph()]);
     toast.success(successMsg);
   } catch (e) {
     toast.error((e as Error).message);
@@ -51,8 +50,7 @@ export async function runOp(
     } else {
       store().patchSession(res.session);
     }
-    await store().refreshHistory();
-    await store().loadLayout();
+    await Promise.all([store().refreshHistory(), store().loadLayout(), store().refreshGraph()]);
     toast.success(successMsg);
   } catch (e) {
     toast.error((e as Error).message);
