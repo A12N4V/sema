@@ -114,13 +114,33 @@ export interface OpSchema {
   params_schema: Record<string, unknown>;
 }
 
-/** Response of POST /sessions/{id}/ops — the generic operation dispatch. */
+/** Response of POST /sessions/{id}/ops for a synchronous op. */
 export interface OpResult {
   op_id: string;
   graph: ContainerRef[];
   capabilities: string[];
   history: LedgerEntry[];
   session: SessionInfo;
+}
+
+/** Response of POST /sessions/{id}/ops for a long_running op (202). */
+export interface OpJobHandle {
+  op_id: string;
+  job_id: string;
+  state: string;
+}
+
+export interface Job {
+  id: string;
+  kind: string;
+  session_id: string;
+  state: "queued" | "running" | "done" | "error";
+  progress: number;
+  detail: string;
+  error: string | null;
+  created_at: number;
+  started_at: number | null;
+  finished_at: number | null;
 }
 
 export class ApiError extends Error {
@@ -199,9 +219,11 @@ export const api = {
   listOps: (input?: string) =>
     req<{ operations: OpSchema[] }>(`/api/ops${input ? `?input=${input}` : ""}`),
   runOp: (id: string, op_id: string, params: Record<string, unknown> = {}) =>
-    req<OpResult>(`/api/sessions/${id}/ops`, j({ op_id, params })),
+    req<OpResult | OpJobHandle>(`/api/sessions/${id}/ops`, j({ op_id, params })),
   graph: (id: string) =>
     req<{ graph: ContainerRef[]; capabilities: string[] }>(`/api/sessions/${id}/graph`),
+  getJob: (jobId: string) => req<Job>(`/api/jobs/${jobId}`),
+  sessionJobs: (id: string) => req<{ jobs: Job[] }>(`/api/sessions/${id}/jobs`),
 
   // --- ICA ---
   fitIca: (id: string, n_components: number, method = "fastica") =>

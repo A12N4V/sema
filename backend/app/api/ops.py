@@ -14,13 +14,14 @@ and now sit alongside it.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from pydantic import ValidationError
 
 from app.core import operations
 from app.core.containers import ContainerKind, container_graph, session_capabilities
 from app.core.loader import raw_summary
 from app.models.schemas import OpRequest
+from app.services.jobs import jobs
 from app.services.session_manager import sessions
 
 router = APIRouter(prefix="/api", tags=["operations"])
@@ -40,8 +41,18 @@ def list_ops(input: str | None = None) -> dict:
     return {"operations": [op.schema() for op in sorted(ops, key=lambda o: (o.stage, o.label))]}
 
 
+def _result(session) -> dict:
+    with session.lock:
+        return {
+            "graph": [c.to_dict() for c in container_graph(session)],
+            "capabilities": sorted(session_capabilities(session)),
+            "history": session.ledger.to_list(),
+            "session": {"session_id": session.id, "filename": session.filename, **raw_summary(session.raw)},
+        }
+
+
 @router.post("/sessions/{session_id}/ops")
-def run_op(session_id: str, body: OpRequest) -> dict:
+def run_op(session_id: str, body: OpRequest, response: Response) -> dict:
     try:
         session = sessions.get(session_id)
     except KeyError as e:
@@ -63,20 +74,24 @@ def run_op(session_id: str, body: OpRequest) -> dict:
     except ValidationError as e:
         raise HTTPException(status_code=422, detail=e.errors())
 
+    # Long ops (ICA fit, forward/inverse, TFR, downloads) run on the job pool
+    # so the request returns now and the client polls GET /api/jobs/{id}.
+    if op.long_running:
+        def _work(job) -> None:
+            with session.lock:
+                op.run(session, params)
+
+        job = jobs.submit(f"op:{op.id}", session_id, _work, detail=op.label)
+        response.status_code = 202
+        return {"op_id": op.id, "job_id": job.id, "state": job.state.value}
+
     try:
         with session.lock:
             op.run(session, params)
     except (ValueError, RuntimeError) as e:
         raise HTTPException(status_code=422, detail=str(e))
 
-    with session.lock:
-        return {
-            "op_id": op.id,
-            "graph": [c.to_dict() for c in container_graph(session)],
-            "capabilities": sorted(session_capabilities(session)),
-            "history": session.ledger.to_list(),
-            "session": {"session_id": session.id, "filename": session.filename, **raw_summary(session.raw)},
-        }
+    return {"op_id": op.id, **_result(session)}
 
 
 @router.get("/sessions/{session_id}/graph")
