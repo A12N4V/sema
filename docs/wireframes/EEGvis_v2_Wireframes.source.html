@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="fonts.css" />
+<title>EEGvis v2 — Low-Fidelity Wireframes</title>
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Balsamiq Sans', 'Comic Sans MS', 'Segoe Print', cursive;
+    color: #2b2b2b; background: #fff;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  code { font-family: 'SF Mono', ui-monospace, Menlo, monospace; font-size: .84em; }
+
+  :root {
+    --ink: #2b2b2b; --ink2: #777; --muted: #b0b0b0; --greek: #d7d7d7;
+    --paper: #fff; --link: #35659f; --note: #c0603a;
+    --propose: #35659f; --wash: #eef4fb;
+  }
+
+  /* ---------- page shell ---------- */
+  .page {
+    position: relative; width: 297mm; height: 209mm;
+    padding: 10mm 12mm 8mm; overflow: hidden;
+    display: flex; flex-direction: column; background: var(--paper);
+  }
+  .page:not(:last-child) { break-after: page; }
+  .phead {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink2);
+    border-bottom: 1.6px solid var(--ink); padding-bottom: 5px; flex: 0 0 auto;
+  }
+  .phead .mid { color: var(--ink); font-weight: 700; letter-spacing: 2px; }
+  .pbody { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  .page.fill .pbody { align-items: stretch; }
+
+  /* ---------- primitives ---------- */
+  .ic { width: 12px; height: 12px; border: 1.5px solid currentColor; border-radius: 3px; display: inline-block; }
+  .ic.on { background: currentColor; }
+  .switch { width: 30px; height: 16px; border: 1.6px solid var(--ink); border-radius: 10px; position: relative; display: inline-block; flex: 0 0 auto; background: #fff; }
+  .switch .knob { position: absolute; top: 1.5px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--ink); }
+  .switch.on { background: #e6e6e6; }
+  .switch.on .knob { left: auto; right: 2px; }
+  .greek { display: block; margin: 4px 0 0; }
+  .greek i { display: block; height: 5px; border-radius: 3px; background: var(--greek); margin: 3.5px 0; }
+
+  h1.doc { font-size: 70px; margin: 0; line-height: .95; letter-spacing: -1.5px; }
+  .tag { font-size: 15px; color: var(--ink2); margin-top: 12px; max-width: 36ch; line-height: 1.45; }
+  .eyebrow { font-size: 9px; letter-spacing: 2.4px; text-transform: uppercase; color: var(--ink2); }
+  .screen-h1 { font-size: 20px; font-weight: 700; margin: 2px 0 0; }
+
+  /* ---------- screen page: desktop artboard + notes ---------- */
+  .screen { display: grid; grid-template-columns: 790px 1fr; gap: 22px; width: 100%; align-items: start; }
+  .abcol { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .abcap { font-size: 8.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink2); text-align: center; }
+
+  /* browser / desktop frame */
+  .browser { position: relative; width: 788px; height: 566px; padding: 26px 8px 8px; display: flex; flex-direction: column; }
+  .browser > wired-card.frame { position: absolute; inset: 0; display: block; width: 788px; height: 566px; --wired-card-background-color: #fff; }
+  .chrome { position: absolute; top: 7px; left: 14px; right: 14px; height: 15px; display: flex; align-items: center; gap: 6px; z-index: 2; }
+  .chrome .dot { width: 8px; height: 8px; border-radius: 50%; border: 1.4px solid var(--ink); flex: 0 0 auto; }
+  .chrome .url { flex: 1; height: 13px; border: 1.4px solid var(--muted); border-radius: 7px; font-size: 7.5px; color: var(--ink2); padding: 0 7px; display: flex; align-items: center; letter-spacing: .3px; }
+  .screenwrap { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; gap: 5px; }
+
+  /* app chrome inside the frame */
+  .cmdbar { display: flex; align-items: center; gap: 7px; border: 1.5px solid var(--ink); border-radius: 6px; padding: 5px 8px; font-size: 9px; flex: 0 0 auto; }
+  .cmdbar .plus { border: 1.5px solid var(--ink); border-radius: 5px; padding: 2px 7px; font-weight: 700; }
+  .cmdbar .k { flex: 1; color: var(--muted); }
+  .worow { flex: 1; display: flex; gap: 5px; min-height: 0; }
+  .rail { width: 116px; flex: 0 0 auto; border: 1.5px solid var(--ink); border-radius: 6px; padding: 6px 5px; display: flex; flex-direction: column; gap: 3px; }
+  .rail .rl { font-size: 7px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--ink2); margin: 3px 0 1px; }
+  .rail .node { font-size: 8.5px; padding: 3px 5px; border: 1.3px solid var(--muted); border-radius: 5px; display: flex; align-items: center; gap: 5px; }
+  .rail .node.on { border-color: var(--ink); background: var(--ink); color: #fff; font-weight: 700; }
+  .rail .node.ghost { border-style: dashed; color: var(--muted); }
+  .rail .kid { margin-left: 9px; }
+  .canvas { flex: 1; display: grid; gap: 5px; min-width: 0; }
+  .inspector { width: 150px; flex: 0 0 auto; border: 1.5px solid var(--ink); border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 5px; }
+  .inspector .il { font-size: 7px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--ink2); }
+  .strip { flex: 0 0 auto; border: 1.5px solid var(--ink); border-radius: 6px; padding: 5px 8px; display: flex; flex-direction: column; gap: 5px; }
+  .transport { display: flex; align-items: center; gap: 8px; font-size: 9px; }
+  .transport .btn { border: 1.4px solid var(--ink); border-radius: 4px; padding: 1px 6px; }
+  .mmap { flex: 1; height: 13px; border: 1.3px solid var(--muted); border-radius: 3px; background: repeating-linear-gradient(90deg,#ececec,#ececec 2px,#fff 2px,#fff 5px); }
+  .dag { display: flex; align-items: center; gap: 4px; font-size: 8px; color: var(--ink2); flex-wrap: nowrap; overflow: hidden; }
+  .dag .st { border: 1.3px solid var(--ink); border-radius: 10px; padding: 1px 6px; white-space: nowrap; }
+  .dag .st.ghost { border-style: dashed; color: var(--muted); }
+  .dag .ar { color: var(--muted); }
+
+  /* generic card */
+  .vc { border: 1.5px solid var(--ink); border-radius: 6px; padding: 4px 6px; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+  .vc .vt { font-size: 8.5px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; flex: 0 0 auto; }
+  .vc .vt .mut { color: var(--ink2); font-weight: 400; font-size: 7.5px; }
+  .vc .pa { flex: 1; position: relative; margin-top: 3px; min-height: 0; }
+  .plot { position: absolute; inset: 0; }
+  .cgrid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 58px; align-content: start; gap: 5px; }
+  .cgrid > div { position: relative; border: 1px solid #e8e8e8; border-radius: 3px; }
+  .cgrid > div.exc { border: 1.6px solid var(--note); background: #fdf2ee; }
+
+  .seg { display: inline-flex; border: 1.5px solid var(--ink); border-radius: 7px; overflow: hidden; font-size: 8.5px; flex: 0 0 auto; }
+  .seg span { padding: 3px 9px; }
+  .seg span.on { background: var(--ink); color: #fff; font-weight: 700; }
+  .seg span + span { border-left: 1.5px solid var(--ink); }
+  .chip { font-size: 8px; padding: 3px 7px; border: 1.4px solid var(--ink); border-radius: 10px; white-space: nowrap; display: inline-block; }
+  .chip.on { background: var(--ink); color: #fff; }
+  .chip.cap { border-color: var(--propose); color: var(--propose); border-style: dashed; }
+  .rowline { display: flex; justify-content: space-between; font-size: 8px; padding: 2px 0; border-top: 1px solid #ececec; }
+  .rowline:first-child { border-top: none; }
+
+  .propose { border: 1.7px dashed var(--propose); border-radius: 7px; padding: 7px 9px; background: var(--wash); position: relative; }
+  .propose::before { content: 'PROPOSED'; position: absolute; top: -7px; left: 9px; background: var(--paper); font-size: 6px; letter-spacing: 1.4px; color: var(--propose); padding: 0 3px; }
+
+  /* ---------- annotation callouts ---------- */
+  .notes { align-self: start; padding-left: 4px; padding-top: 2px; }
+  .notes h3 { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink2); margin: 0 0 5px; }
+  .ncontext { font-size: 9.5px; color: var(--ink2); line-height: 1.45; margin: 0 0 11px; padding-bottom: 9px; border-bottom: 1px solid #e6e6e6; }
+  .notes ol { margin: 0; padding: 0; list-style: none; counter-reset: c; }
+  .notes li { position: relative; padding-left: 25px; margin-bottom: 10px; font-size: 10px; line-height: 1.5; counter-increment: c; }
+  .notes li::before { content: counter(c); position: absolute; left: 0; top: 0; width: 16px; height: 16px; border: 1.5px solid var(--note); color: var(--note); border-radius: 50%; text-align: center; font-size: 9px; line-height: 14px; font-weight: 700; }
+  .notes li.warn::before { background: var(--note); color: #fff; }
+  .priorart { margin-top: 12px; padding-top: 9px; border-top: 1px solid #e6e6e6; font-size: 9px; color: var(--ink2); line-height: 1.5; }
+  .priorart b { color: var(--ink); letter-spacing: 1px; text-transform: uppercase; font-size: 8px; }
+  .lead { font-weight: 700; }
+  .tagword { border: 1.4px solid; border-radius: 4px; padding: 0 4px; font-size: 8px; letter-spacing: .4px; white-space: nowrap; }
+  .t-prop { color: var(--propose); border-color: var(--propose); }
+  .t-open { color: var(--note); border-color: var(--note); }
+  .t-now  { color: var(--ink2); border-color: var(--muted); }
+  .cx { display: inline-flex; width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--note); color: var(--note); background: var(--paper); font-size: 8px; line-height: 11px; justify-content: center; align-items: center; font-weight: 700; vertical-align: middle; margin-left: 3px; }
+
+  /* ---------- cover ---------- */
+  .cover { display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; width: 100%; height: 100%; align-content: center; align-items: center; }
+  .cover .l { display: flex; flex-direction: column; }
+  .cover .box { border: 1.7px solid var(--ink); border-radius: 8px; padding: 11px 13px; margin-top: 16px; }
+  .cover .box.prop { border-style: dashed; border-color: var(--propose); background: var(--wash); }
+  .cover .box h4 { margin: 0 0 5px; font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink2); }
+  .cover .box p { margin: 0; font-size: 10px; line-height: 1.5; }
+  .pillars { list-style: none; margin: 0; padding: 0; }
+  .pillars li { margin-bottom: 14px; padding-left: 30px; position: relative; font-size: 10.5px; line-height: 1.42; }
+  .pillars li:last-child { margin-bottom: 0; }
+  .pillars li b { font-size: 12px; display: block; margin-bottom: 2px; }
+  .pillars li .pn { position: absolute; left: 0; top: 0; width: 20px; height: 20px; border: 1.7px solid var(--ink); border-radius: 50%; text-align: center; line-height: 18px; font-size: 10px; font-weight: 700; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; border-top: 1.6px solid var(--ink); padding-top: 8px; margin-top: 10px; font-size: 8.5px; color: var(--ink2); flex: 0 0 auto; }
+  .legend .li { display: flex; align-items: center; gap: 5px; }
+  .sw { width: 26px; height: 15px; flex: 0 0 auto; display: inline-block; }
+  .sw.box { border: 1.7px solid var(--ink); }
+  .sw.dash { border: 1.7px dashed var(--propose); background: var(--wash); }
+  .sw.note { border: 1.5px solid var(--note); border-radius: 50%; width: 15px; height: 15px; color: var(--note); text-align: center; line-height: 13px; font-weight: 700; font-size: 8px; }
+  .toc { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 14px; margin-top: 20px; }
+  .toc .t { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .toc .tm { width: 100%; height: 44px; border: 1.5px solid var(--muted); border-radius: 4px; position: relative; }
+  .toc .tm::before { content: ''; position: absolute; left: 6px; right: 6px; top: 6px; height: 5px; background: var(--greek); border-radius: 2px; }
+  .toc .tm::after { content: ''; position: absolute; left: 6px; right: 40%; top: 15px; height: 4px; background: #ececec; border-radius: 2px; }
+  .toc .tl { font-size: 7px; letter-spacing: .3px; text-transform: uppercase; color: var(--ink2); text-align: center; }
+
+  /* ---------- IA / flow map ---------- */
+  .map { display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: flex-start; gap: 22px; padding-top: 4px; }
+  .maptitle { font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--ink2); }
+  .graph { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .gcol { display: flex; flex-direction: column; gap: 7px; align-items: center; }
+  .gnode { border: 1.6px solid var(--ink); border-radius: 8px; padding: 6px 10px; font-size: 10px; font-weight: 700; text-align: center; min-width: 92px; }
+  .gnode .s { display: block; font-size: 7.5px; font-weight: 400; color: var(--ink2); letter-spacing: .3px; }
+  .gnode.ghost { border-style: dashed; color: var(--ink2); }
+  .gnode.hub { background: var(--ink); color: #fff; }
+  .garrow { align-self: center; color: var(--muted); font-size: 15px; }
+  .thumbs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .thumb { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .thumb .mini { width: 100%; height: 74px; border: 1.4px solid var(--muted); border-radius: 5px; position: relative; padding: 7px; display: flex; flex-direction: column; gap: 4px; }
+  .thumb .mini .bar { height: 6px; background: var(--greek); border-radius: 2px; }
+  .thumb .mini .bar.t { width: 55%; height: 9px; background: #bcbcbc; }
+  .thumb .mini .blk { border: 1.2px solid var(--muted); border-radius: 3px; flex: 1; }
+  .thumb .nm { font-size: 9px; font-weight: 700; text-align: center; }
+  .thumb .role { font-size: 7.5px; color: var(--ink2); text-align: center; line-height: 1.3; }
+  .flows { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 30px; font-size: 9.5px; line-height: 1.4; }
+  .flows .f { display: flex; gap: 8px; align-items: flex-start; }
+  .flows .f .a { color: var(--note); font-weight: 700; flex: 0 0 auto; }
+  .foot { font-size: 8px; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; }
+
+  svg.rk { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ PAGE 1 · COVER ═══════════════ -->
+<section class="page fill">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">v2 — Low-Fidelity Wireframes</span><span>p.1 / 14</span></div>
+  <div class="pbody">
+    <div class="cover">
+      <div class="l">
+        <h1 class="doc">EEGvis v2</h1>
+        <div class="tag">A browser workbench over the whole MNE-Python pipeline — load any recording, clean it, analyse it, localise it, export a script that reproduces every step.</div>
+        <div class="tag" style="font-size:10px; margin-top:12px; max-width:48ch;">
+          The whole deck is the v2 proposal. Solid boxes = structure or logic carried from v1; per-note tags flag each as <span class="tagword t-now">NOW</span>, <span class="tagword t-prop">PROPOSED</span>, or <span class="tagword t-open">OPEN&nbsp;Q</span>.
+        </div>
+        <div class="toc">
+          <div class="t"><div class="tm"></div><div class="tl">p2 IA map</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p3 Connect</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p4 Shell</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p5 Commands</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p6 Raw</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p7 ICA</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p8 Evoked</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p9 TFR</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p10 Source</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p11 Connect·y</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p12 Export</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p13–14 Sys</div></div>
+        </div>
+        <div class="box">
+          <h4>v1 → v2, in one line</h4>
+          <p>A working prototype hit a ceiling: fixed grid, preprocessing-only toolbar, per-op routes, clipped text. v2 keeps the good substrate (canvas, ledger, theme) and rebuilds the shell around MNE's object graph.</p>
+        </div>
+        <div class="box prop">
+          <h4>The one bet</h4>
+          <p>One registry entry per MNE operation, one card per MNE plot, one renderer, one provenance graph. Every new capability is <i>data</i>, not code. See <code>BUILD_PLAN_V2.md</code>.</p>
+        </div>
+      </div>
+      <div class="l">
+        <wired-card elevation="2" style="padding:20px; display:flex; flex-direction:column;">
+          <div style="font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--ink2); margin-bottom:16px;">What every screen earns</div>
+          <ol class="pillars">
+            <li><span class="pn">1</span><b>Container-centric</b>The left rail is MNE's object graph: Raw → Epochs → Evoked → Spectrum/TFR → Source. Pick an object, the workspace reshapes to it.</li>
+            <li><span class="pn">2</span><b>Dense but not cluttered</b>Every label owns its box. Tabular numerals, real breakpoints, one type scale. Density from information, not from cramming.</li>
+            <li><span class="pn">3</span><b>Modular canvas</b>Views are cards you add / swap / arrange. A workspace preset is just a saved layout. Nothing is hard-wired into the shell.</li>
+          </ol>
+        </wired-card>
+      </div>
+    </div>
+  </div>
+  <div class="legend">
+    <span class="li"><span class="sw box"></span> v1 element (exists)</span>
+    <span class="li"><span class="sw dash"></span> proposed / not built</span>
+    <span class="li"><span class="sw note">1</span> callout — see notes</span>
+    <span class="li">tags: <span class="tagword t-now">NOW</span> <span class="tagword t-prop">PROPOSED</span> <span class="tagword t-open">OPEN Q</span></span>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 2 · IA / CONTAINER GRAPH ═══════════════ -->
+<section class="page fill">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">Information Architecture — the container graph is the nav</span><span>p.2 / 14</span></div>
+  <div class="pbody">
+    <div class="map">
+      <div class="maptitle">MNE data containers — the left rail renders this graph; selecting a node reshapes the workspace</div>
+      <div class="graph">
+        <div class="gcol">
+          <div class="gnode hub">Raw<span class="s">continuous</span></div>
+        </div>
+        <div class="garrow">&rarr;</div>
+        <div class="gcol">
+          <div class="gnode">Epochs<span class="s">trials</span></div>
+          <div class="gnode ghost">Spectrum<span class="s">PSD</span></div>
+          <div class="gnode">ICA<span class="s">unmixing</span></div>
+          <div class="gnode ghost">TFR<span class="s">time-freq</span></div>
+        </div>
+        <div class="garrow">&rarr;</div>
+        <div class="gcol">
+          <div class="gnode ghost">Evoked<span class="s">average</span></div>
+          <div class="gnode ghost">EpochsTFR<span class="s"></span></div>
+        </div>
+        <div class="garrow">&rarr;</div>
+        <div class="gcol">
+          <div class="gnode ghost">Forward<span class="s">BEM · coreg</span></div>
+          <div class="gnode ghost">Covariance<span class="s">noise</span></div>
+          <div class="gnode ghost">Inverse<span class="s">operator</span></div>
+        </div>
+        <div class="garrow">&rarr;</div>
+        <div class="gcol">
+          <div class="gnode ghost">SourceEstimate<span class="s">cortex · the 3D brain</span></div>
+          <div class="gnode ghost">Connectivity<span class="s"></span></div>
+          <div class="gnode ghost">Dipole<span class="s"></span></div>
+        </div>
+      </div>
+
+      <div class="maptitle">Screens in this deck</div>
+      <div class="thumbs">
+        <div class="thumb"><div class="mini"><div class="bar t"></div><div class="blk"></div></div><div class="nm">Connect</div><div class="role">any format · sample data</div></div>
+        <div class="thumb"><div class="mini"><div class="bar t"></div><div class="blk"></div></div><div class="nm">Workspace shell</div><div class="role">rail · canvas · inspector · transport</div></div>
+        <div class="thumb"><div class="mini"><div class="bar t"></div><div class="blk"></div></div><div class="nm">Command palette</div><div class="role">ops by stage + param form</div></div>
+        <div class="thumb"><div class="mini"><div class="bar t"></div><div class="blk"></div></div><div class="nm">Raw workspace</div><div class="role">waveform · sensors · PSD</div></div>
+        <div class="thumb"><div class="mini"><div class="bar t"></div><div class="blk"></div></div><div class="nm">ICA workspace</div><div class="role">grid · properties · ICLabel</div></div>
+        <div class="thumb"><div class="mini"><div class="bar t"></div><div class="blk"></div></div><div class="nm">Epochs / Evoked</div><div class="role">image · butterfly · compare</div></div>
+        <div class="thumb"><div class="mini"><div class="bar t"></div><div class="blk"></div></div><div class="nm">Time-Frequency</div><div class="role">Morlet · ITC · topo-over-time</div></div>
+        <div class="thumb"><div class="mini"><div class="bar t"></div><div class="blk"></div></div><div class="nm">Source</div><div class="role">setup wizard + inflated brain</div></div>
+        <div class="thumb"><div class="mini"><div class="bar t"></div><div class="blk"></div></div><div class="nm">Connectivity</div><div class="role">connectogram · matrix</div></div>
+        <div class="thumb"><div class="mini"><div class="bar t"></div><div class="blk"></div></div><div class="nm">Provenance / Export</div><div class="role">DAG · pipeline.py · Report</div></div>
+        <div class="thumb"><div class="mini"><div class="bar t"></div><div class="blk"></div></div><div class="nm">Inspector states</div><div class="role">channel · component · label</div></div>
+        <div class="thumb"><div class="mini"><div class="bar t"></div><div class="blk"></div></div><div class="nm">Design + responsive</div><div class="role">tokens · breakpoints</div></div>
+      </div>
+
+      <div class="maptitle">Cross-screen flows</div>
+      <div class="flows">
+        <div class="f"><span class="a">&rarr;</span><span><b>Connect &rarr; Shell.</b> Post a file or pick a dataset &rarr; routed <code>/s/:id</code>, rail shows Raw.</span></div>
+        <div class="f"><span class="a">&#8646;</span><span><b>Rail node &rarr; workspace.</b> Selecting a container swaps the card layout + the ops the command bar offers.</span></div>
+        <div class="f"><span class="a">&rarr;</span><span><b>Any op &rarr; Provenance.</b> Every registry op appends a DAG node; branch to try alternatives.</span></div>
+        <div class="f"><span class="a">&#8599;</span><span><b>Source rail node &rarr; wizard.</b> Gated: montage &rarr; forward &rarr; covariance &rarr; inverse, then the brain card unlocks.</span></div>
+      </div>
+      <div class="foot">Persistent chrome: command bar (top) · container rail (left) · inspector (right) · transport + provenance (bottom)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 3 · CONNECT ═══════════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">01 — Connect</span><span>p.3 / 14</span></div>
+  <div class="pbody">
+    <div class="screen">
+      <div class="abcol">
+        <div class="browser">
+          <wired-card class="frame" elevation="3"></wired-card>
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:5173/connect</span></div>
+          <div class="screenwrap">
+            <div style="text-align:center; padding:4px 0;"><div class="screen-h1">EEGvis</div><div class="eyebrow">a workbench over MNE-Python</div></div>
+            <div style="display:flex; gap:6px; flex:1; min-height:0;">
+              <div class="vc" style="flex:1.3;">
+                <div class="vt">Open a recording <span class="cx">1</span></div>
+                <div class="pa" data-x style="border:1.7px dashed var(--muted); border-radius:6px; margin-top:4px;"></div>
+                <div style="font-size:7.5px; color:var(--ink2); margin-top:4px; line-height:1.4;">drag a file, or a folder for multi-file (BrainVision <code>.vhdr/.eeg/.vmrk</code>, EEGLAB <code>.set/.fdt</code>, BIDS root)</div>
+                <div style="display:flex; flex-wrap:wrap; gap:3px; margin-top:5px;">
+                  <span class="chip on">EEG</span><span class="chip cap">MEG</span><span class="chip cap">sEEG/ECoG</span><span class="chip cap">fNIRS</span><span class="chip cap">eyetracking</span>
+                </div>
+                <div style="font-size:7px; color:var(--muted); margin-top:4px;">EDF · BDF · FIF · BrainVision · EEGLAB · CNT · GDF <span style="color:var(--propose)">＋ EGI · Persyst · Curry · CTF · KIT · SNIRF · EyeLink · XDF · BIDS</span></div>
+              </div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+                <div class="propose" style="flex:1;">
+                  <div style="font-size:8.5px; font-weight:700;">Sample datasets <span class="cx">2</span></div>
+                  <div class="rowline">eegbci — motor imagery <span>fetch</span></div>
+                  <div class="rowline">sample — aud/vis MEG+EEG <span>fetch</span></div>
+                  <div class="rowline">somato · ssvep · fnirs_motor <span>…</span></div>
+                  <div class="rowline">erp_core — 6 ERP paradigms <span>fetch</span></div>
+                </div>
+                <div class="vc" style="flex:1;">
+                  <div class="vt">Recent <span class="cx">3</span></div>
+                  <div class="rowline">sub-04_task-oddball.fif <span>2h ago</span></div>
+                  <div class="rowline">pilot_rest_64ch.vhdr <span>yesterday</span></div>
+                  <div class="rowline" style="color:var(--muted)">— reopens from the session bundle —</div>
+                </div>
+              </div>
+            </div>
+            <div class="vc" style="flex:0 0 auto;">
+              <div class="vt">Or from a notebook <span class="mut">the plugin path</span></div>
+              <div style="font-size:8px; margin-top:2px;"><code>import eegvis; eegvis.launch(raw)</code> &nbsp;·&nbsp; <code>$ eegvis sub-04_raw.fif</code></div>
+            </div>
+          </div>
+        </div>
+        <div class="abcap">desktop · <code>routes/connect.tsx</code> · replaces v1 auto-boot-to-demo</div>
+      </div>
+      <div class="notes">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>v1:</b> auto-loads a synthetic 32-ch demo, upload is a secondary link, 7 formats. <b>This proposes:</b> a real entry point for every MNE input.</p>
+        <ol>
+          <li class="warn"><span class="lead">Format + modality grid.</span> <span class="tagword t-prop">PROPOSED</span> — reader registry (P0.10) covers ~25 formats; the <code>Info</code> decides which modality stages appear later. MEG/fNIRS/iEEG are real MNE inputs, not EEG-only.</li>
+          <li><span class="lead">Sample datasets.</span> <span class="tagword t-prop">PROPOSED</span> — <code>mne.datasets.*</code> one-click fetch (tracked job). Replaces the single hand-rolled synthetic demo; keep that as an offline fallback.</li>
+          <li><span class="lead">Recent + bundle.</span> <span class="tagword t-prop">PROPOSED</span> — sessions persist to <code>~/.eegvis/sessions/</code> (ledger + container snapshots), so refresh / reopen doesn't lose work. v1 loses everything on reload.</li>
+          <li><span class="lead">Multi-file drop.</span> <span class="tagword t-open">OPEN Q</span> — group-by-stem on a folder drop vs an explicit "add sidecar" step for BrainVision/EEGLAB.</li>
+          <li><span class="lead">Plugin path.</span> <span class="tagword t-prop">PROPOSED</span> — <code>eegvis.launch(raw)</code> posts an in-memory Raw; every dev iteration and the real use-case go through the same door.</li>
+        </ol>
+        <div class="priorart"><b>Prior art</b><br/>MNE's own <code>raw.plot()</code> is a matplotlib window per object. EEGLAB / Brainstorm are desktop GUIs tied to their own file stores. The bet: a browser session you can hand a URL to, seeded from any MNE reader.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 4 · WORKSPACE SHELL ═══════════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">02 — Workspace shell (the whole chrome)</span><span>p.4 / 14</span></div>
+  <div class="pbody">
+    <div class="screen">
+      <div class="abcol">
+        <div class="browser">
+          <wired-card class="frame" elevation="3"></wired-card>
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:5173/s/8f3a…/raw</span></div>
+          <div class="screenwrap">
+            <div class="cmdbar">
+              <span class="plus">＋ Operation</span>
+              <span class="k">⌘K — filter, notch, ICA, epoch, source… <span class="cx">1</span></span>
+              <span class="chip">Raw · 64ch · 256Hz</span><span class="chip cap">montage ✓</span><span class="chip cap">1 Hz ✓</span>
+            </div>
+            <div class="worow">
+              <div class="rail">
+                <div class="rl">Containers <span class="cx">2</span></div>
+                <div class="node on"><span class="ic on"></span>Raw</div>
+                <div class="node kid ghost"><span class="ic"></span>Epochs</div>
+                <div class="node kid ghost"><span class="ic"></span>Evoked</div>
+                <div class="node ghost"><span class="ic"></span>Spectrum</div>
+                <div class="node ghost"><span class="ic"></span>TFR</div>
+                <div class="node"><span class="ic"></span>ICA</div>
+                <div class="node ghost"><span class="ic"></span>Source ▸</div>
+                <div class="rl">Preset</div>
+                <div class="node"><span class="ic on"></span>Clean</div>
+              </div>
+              <div class="canvas" style="grid-template-columns:1.4fr 1fr; grid-template-rows:1fr 1fr;">
+                <div class="vc" style="grid-row:1 / span 2;"><div class="vt">Waveform <span class="mut">F1</span></div><div class="pa"><svg class="rk" data-wave></svg></div></div>
+                <div class="vc"><div class="vt">Sensors 2D</div><div class="pa"><svg class="rk" data-topo></svg></div></div>
+                <div class="vc"><div class="vt">PSD <span class="mut">1–45 Hz</span></div><div class="pa"><svg class="rk" data-psd></svg></div></div>
+              </div>
+              <div class="inspector">
+                <div class="il">Inspector <span class="cx">3</span></div>
+                <div style="font-size:9px; font-weight:700;">Channel · T7</div>
+                <div class="pa" data-x style="height:44px; position:relative; border:1.3px solid var(--muted); border-radius:4px;"></div>
+                <div class="rowline">type <span>eeg</span></div>
+                <div class="rowline">status <span style="color:var(--note)">bad</span></div>
+                <span class="chip" style="text-align:center;">interpolate</span>
+                <span class="chip">unmark bad</span>
+              </div>
+            </div>
+            <div class="strip">
+              <div class="transport">
+                <span class="btn">◀◀</span><span class="btn">▶</span><span class="btn">▶▶</span>
+                <span>0:05 / 3:00</span>
+                <span class="seg" style="font-size:7.5px;"><span>1×</span><span class="on">2×</span><span>4×</span></span>
+                <span>⟲ loop</span>
+                <div class="mmap"></div>
+                <span class="cx">4</span>
+              </div>
+              <div class="dag">
+                <span class="st">ingest</span><span class="ar">→</span>
+                <span class="st">1–40 Hz</span><span class="ar">→</span>
+                <span class="st">notch 60</span><span class="ar">→</span>
+                <span class="st on" style="background:var(--ink); color:#fff;">bad: T7</span><span class="ar">→</span>
+                <span class="st ghost">＋ epoch</span>
+                <span style="margin-left:auto;" class="chip">py</span><span class="chip">⤓</span><span class="cx">5</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="abcap">desktop ≥ 1200px · <code>shell/Workspace.tsx</code> — replaces <code>Terminal.tsx</code> fixed grid + <code>Toolbar.tsx</code></div>
+      </div>
+      <div class="notes">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>v1:</b> a fixed 5-panel grid, a preprocessing-only dropdown toolbar, a 9-item F-key strip, an 8-stat ticker that clips below ~950px. <b>This proposes</b> one coherent shell driven by registries.</p>
+        <ol>
+          <li><span class="lead">Command bar.</span> <span class="tagword t-prop">PROPOSED</span> — visible <code>＋ Operation</code> button <i>and</i> ⌘K, both dispatch the operation registry (P0.2). Only ops whose input type matches the active container show. Capability pills replace the cramped ticker.</li>
+          <li class="warn"><span class="lead">Container rail.</span> <span class="tagword t-prop">PROPOSED</span> — the lineage DAG (P0.1). Click a node = active container; the canvas + offered ops reshape. Ghost = not created yet, click to see how. This is the whole nav model.</li>
+          <li><span class="lead">Inspector.</span> <span class="tagword t-prop">PROPOSED</span> — one context panel (channel / component / label / step / edge) replacing v1's scattered in-panel detail panes.</li>
+          <li><span class="lead">Transport.</span> <span class="tagword t-open">OPEN Q</span> — real play/scrub/speed/loop driving the shared cursor. v1 has a Space-bar rAF sweep that pauses in background tabs and doesn't animate the spectral panels. Windowed PSD (P5) makes them move.</li>
+          <li><span class="lead">Provenance strip.</span> <span class="tagword t-prop">PROPOSED</span> — the DAG as a filmstrip (P0.6); click a node to time-travel, branch to compare. Export menu lives here.</li>
+        </ol>
+        <div class="priorart"><b>Prior art</b><br/>Bloomberg / Persyst terminals: dense, keyboard-first, but fixed layouts. Observable / Jupyter: modular but no domain model. The bet: a domain-shaped shell (MNE's graph) with a modular canvas inside it.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 5 · COMMAND PALETTE + PARAM FORM ═══════════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">03 — Command palette &amp; parameter form</span><span>p.5 / 14</span></div>
+  <div class="pbody">
+    <div class="screen">
+      <div class="abcol">
+        <div class="browser">
+          <wired-card class="frame" elevation="3"></wired-card>
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:5173/s/8f3a…/raw</span></div>
+          <div class="screenwrap" style="padding:6px;">
+            <div style="display:flex; gap:8px; flex:1; min-height:0;">
+              <div class="propose" style="flex:1.1; display:flex; flex-direction:column; overflow:hidden;">
+                <div style="font-size:9px; font-weight:700;">＋ Operation — <span style="font-weight:400; color:var(--ink2)">input: Raw</span> <span class="cx">1</span></div>
+                <div style="border:1.4px solid var(--muted); border-radius:5px; padding:3px 6px; font-size:8px; color:var(--ink2); margin:4px 0;">type to filter…  <span style="color:var(--muted)">"filt" — 3 matches</span></div>
+                <div style="font-size:7px; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink2); margin-top:2px;">Ingest &amp; assembly</div>
+                <div class="rowline">Crop · Resample · Concatenate · Anonymize</div>
+                <div style="font-size:7px; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink2); margin-top:4px;">Montage &amp; channels</div>
+                <div class="rowline">Set montage <span style="color:var(--ink2)">std / file / digitized</span></div>
+                <div class="rowline">Re-reference <span style="color:var(--ink2)">avg / REST / bipolar</span></div>
+                <div class="rowline">Set channel types · rename · pick / drop</div>
+                <div class="rowline">Interpolate bad channels <span class="chip cap" style="font-size:6.5px; padding:0 4px;">closes loop</span></div>
+                <div style="font-size:7px; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink2); margin-top:4px;">Filter &amp; repair</div>
+                <div class="rowline" style="font-weight:700; background:#eef4fb;">Band-pass filter <span style="color:var(--ink2); font-weight:400;">raw.filter</span></div>
+                <div class="rowline">Notch filter <span style="color:var(--ink2)">fixed / spectrum_fit</span></div>
+                <div class="rowline">Current source density (Laplacian)</div>
+                <div class="rowline">Hilbert envelope · SSS / Maxwell <span style="color:var(--muted)">meg</span></div>
+                <div style="font-size:7px; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink2); margin-top:4px;">Artifact ID</div>
+                <div class="rowline">Annotate muscle / amplitude / break</div>
+                <div class="rowline">Detect EOG / ECG events · regress artifact</div>
+                <div style="font-size:7px; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink2); margin-top:4px;">Decompose · Segment · Spectral · Source</div>
+                <div class="rowline" style="color:var(--muted)">Fit ICA · SSP · Create epochs · PSD / TFR · Forward / Inverse …</div>
+              </div>
+              <div class="vc" style="flex:1;">
+                <div class="vt">Band-pass filter <span class="mut">auto-form from schema <span class="cx">2</span></span></div>
+                <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px; font-size:8.5px;">
+                  <div><div style="color:var(--ink2); font-size:7.5px;">l_freq (Hz)</div><div style="border:1.4px solid var(--ink); border-radius:4px; padding:3px 6px;">1.0</div></div>
+                  <div><div style="color:var(--ink2); font-size:7.5px;">h_freq (Hz)</div><div style="border:1.4px solid var(--ink); border-radius:4px; padding:3px 6px;">40.0</div></div>
+                  <div><div style="color:var(--ink2); font-size:7.5px;">method</div><div class="seg" style="font-size:7.5px;"><span class="on">FIR</span><span>IIR</span></div></div>
+                  <div style="border:1.3px dashed var(--propose); border-radius:4px; padding:4px 6px; background:#f6f9fd;">
+                    <div style="color:var(--propose); font-size:7.5px;">▾ advanced</div>
+                    <div style="display:flex; gap:6px; margin-top:3px;">
+                      <div style="flex:1;"><div style="color:var(--ink2); font-size:7px;">transition bw</div><div style="border:1.2px solid var(--muted); border-radius:3px; padding:2px 4px;">auto</div></div>
+                      <div style="flex:1;"><div style="color:var(--ink2); font-size:7px;">phase</div><div style="border:1.2px solid var(--muted); border-radius:3px; padding:2px 4px;">zero</div></div>
+                      <div style="flex:1;"><div style="color:var(--ink2); font-size:7px;">window</div><div style="border:1.2px solid var(--muted); border-radius:3px; padding:2px 4px;">hamming</div></div>
+                    </div>
+                  </div>
+                  <div class="pa" data-psd style="height:52px; position:relative; border:1.3px solid var(--muted); border-radius:4px;"></div>
+                  <div style="font-size:7px; color:var(--ink2);">filter-response preview — magnitude + group delay <span class="cx">3</span></div>
+                  <div style="display:flex; gap:5px; margin-top:2px;"><span class="chip on">Apply</span><span class="chip">Apply to a branch</span><span class="chip">Cancel</span></div>
+                  <div style="font-size:7px; color:var(--ink2); border-top:1px solid #eee; padding-top:4px;">→ ledger + <code>pipeline.py</code>: <code>raw.filter(l_freq=1.0, h_freq=40.0)</code> <span class="cx">4</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="abcap">modal over the workspace · <code>shell/CommandBar.tsx</code> + <code>ParamForm.tsx</code></div>
+      </div>
+      <div class="notes">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>v1:</b> preprocessing is 6 fixed toolbar dropdowns; everything else (ICA, epochs, export) is elsewhere or absent. A ⌘K palette was built then deleted. <b>This proposes</b> one surface generated from the registry.</p>
+        <ol>
+          <li class="warn"><span class="lead">Ops filtered by input type.</span> <span class="tagword t-prop">PROPOSED</span> — the registry (P0.2) knows each op's input container. Active = Raw &rarr; you see Raw ops, grouped by MNE stage. Select Epochs &rarr; the list becomes reject / metadata / average.</li>
+          <li><span class="lead">Auto-generated form.</span> <span class="tagword t-prop">PROPOSED</span> — <code>&lt;ParamForm&gt;</code> renders from the op's Pydantic → JSON schema (P0.8/P0.9). ~60 ops, zero bespoke form code. <code>x-widget</code> hints for channel-picker / band-picker.</li>
+          <li><span class="lead">Preview where cheap.</span> <span class="tagword t-open">OPEN Q</span> — filter response, ICA overlay, epoch count: which ops get a live preview vs apply-then-inspect. Default: preview if it's a pure function of params.</li>
+          <li><span class="lead">Apply → ledger + optional branch.</span> <span class="tagword t-prop">PROPOSED</span> — every op appends a DAG node and its <code>pipeline.py</code> line. "Apply to a branch" forks (P0.6) to compare alternatives without losing the current line.</li>
+          <li><span class="lead">Long ops.</span> <span class="tagword t-prop">PROPOSED</span> — ICA / forward / TFR / stats return a <code>job_id</code>; the form closes, a progress chip appears in the transport (P0.3).</li>
+        </ol>
+        <div class="priorart"><b>Prior art</b><br/>Blender / Nuke node menus; VS Code command palette. The bet: the palette <i>is</i> the API surface — anything MNE can do to the active object is one fuzzy search away, and it writes the script.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 6 · RAW WORKSPACE ═══════════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">04 — Raw workspace</span><span>p.6 / 14</span></div>
+  <div class="pbody">
+    <div class="screen">
+      <div class="abcol">
+        <div class="browser">
+          <wired-card class="frame" elevation="3"></wired-card>
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:5173/s/8f3a…/raw</span></div>
+          <div class="screenwrap">
+            <div class="cmdbar"><span class="plus">＋ Operation</span><span class="k">⌘K</span><span class="chip on">Raw</span><span class="chip cap">montage ✓</span><span class="chip cap">64 ch · 2 bad</span></div>
+            <div class="worow">
+              <div class="rail">
+                <div class="rl">Containers</div>
+                <div class="node on"><span class="ic on"></span>Raw</div>
+                <div class="node kid ghost"><span class="ic"></span>Epochs</div>
+                <div class="node ghost"><span class="ic"></span>Spectrum</div>
+                <div class="node"><span class="ic"></span>ICA</div>
+                <div class="node ghost"><span class="ic"></span>Source ▸</div>
+              </div>
+              <div class="canvas" style="grid-template-columns:1.5fr 1fr; grid-template-rows:1.3fr 1fr;">
+                <div class="vc" style="grid-row:1 / span 2;"><div class="vt">Waveform <span class="mut">annotate ▾ · 12 µV/div</span></div><div class="pa"><svg class="rk" data-wave></svg></div></div>
+                <div class="vc"><div class="vt">Sensors 2D <span class="mut">click = select / bad</span></div><div class="pa"><svg class="rk" data-topo></svg></div></div>
+                <div class="vc"><div class="vt">PSD <span class="mut">mean ± IQR</span></div><div class="pa"><svg class="rk" data-psd></svg></div></div>
+              </div>
+              <div class="inspector">
+                <div class="il">Channels <span class="cx">3</span></div>
+                <div class="rowline" style="font-weight:700;">name / type</div>
+                <div class="rowline">Fp1 <span>eeg</span></div>
+                <div class="rowline" style="color:var(--note)">T7 <span>bad</span></div>
+                <div class="rowline">EOG061 <span>eog</span></div>
+                <div class="rowline" style="color:var(--muted)">＋ set type · rename · pick</div>
+                <div class="il" style="margin-top:4px;">Annotations</div>
+                <div class="rowline">BAD_muscle <span>×3</span></div>
+                <div class="rowline">blink <span>×41</span></div>
+              </div>
+            </div>
+            <div class="strip">
+              <div class="transport"><span class="btn">▶</span><span>0:05 / 3:00</span><div class="mmap"></div></div>
+              <div class="dag"><span class="st">ingest</span><span class="ar">→</span><span class="st">avg ref</span><span class="ar">→</span><span class="st">1–40 Hz</span><span class="ar">→</span><span class="st">notch 60</span><span class="ar">→</span><span class="st on" style="background:var(--ink); color:#fff;">bad T7,TP9</span><span class="ar">→</span><span class="st ghost">interpolate</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="abcap">the "Clean" preset · cards from the registry (P0.4)</div>
+      </div>
+      <div class="notes">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>v1:</b> waveform + a hand-rolled "scalp field" + PSD + band heatmap + history, fixed. Mark-bad works but there's no <code>interpolate_bads</code>, no annotation editing, no channels view. <b>This proposes</b> the full Raw stage.</p>
+        <ol>
+          <li><span class="lead">Waveform card.</span> <span class="tagword t-now">NOW</span> canvas scroller + shared cursor. <span class="tagword t-prop">PROPOSED</span> annotation mode (draw / label / delete <code>BAD_*</code> spans), a real channel rail, WebGL renderer for 256-ch (P0.4).</li>
+          <li><span class="lead">Sensors 2D.</span> <span class="tagword t-prop">PROPOSED</span> — <code>plot_sensors</code> idiom: named electrodes, click to select everywhere / toggle bad. Replaces the lumpy oblique "3D" blob, which was never a brain (see p.10).</li>
+          <li class="warn"><span class="lead">Channels + annotations inspector.</span> <span class="tagword t-prop">PROPOSED</span> — set type / rename / reorder / pick-drop; annotation counts. <code>interpolate_bads</code> is the <b>first</b> P2 op — marking a channel bad currently goes nowhere.</li>
+          <li><span class="lead">Artifact-ID ops.</span> <span class="tagword t-prop">PROPOSED</span> — <code>annotate_muscle_zscore</code>, <code>annotate_amplitude</code>, EOG/ECG detection, <code>regress_artifact</code>, <code>find_bad_channels_lof</code>. All write Annotations or the bad list; all in <code>pipeline.py</code>.</li>
+          <li><span class="lead">Modality-aware.</span> <span class="tagword t-open">OPEN Q</span> — for MEG show a helmet layout + SSS stage; for fNIRS the optical-density chain. Driven by <code>Info</code> (P0.10). How much to specialise vs keep generic.</li>
+        </ol>
+        <div class="priorart"><b>Prior art</b><br/><code>mne.Raw.plot()</code> — the reference scroller (scaling, butterfly, annotation mode, filter-on-the-fly). This card should reach parity, in the browser, cursor-linked to every other card.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 7 · ICA WORKSPACE ═══════════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">05 — ICA workspace</span><span>p.7 / 14</span></div>
+  <div class="pbody">
+    <div class="screen">
+      <div class="abcol">
+        <div class="browser">
+          <wired-card class="frame" elevation="3"></wired-card>
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:5173/s/8f3a…/ica</span></div>
+          <div class="screenwrap">
+            <div class="cmdbar"><span class="plus">＋ Operation</span><span class="k">⌘K · input: ICA</span><span class="chip">picard · n=20</span><span class="chip cap">ICLabel ✓</span></div>
+            <div class="worow">
+              <div class="rail">
+                <div class="rl">Containers</div>
+                <div class="node"><span class="ic"></span>Raw</div>
+                <div class="node on"><span class="ic on"></span>ICA</div>
+                <div class="rl">Actions</div>
+                <div class="node ghost"><span class="ic"></span>auto-label</div>
+                <div class="node ghost"><span class="ic"></span>find_bads_eog</div>
+                <div class="node" style="border-color:var(--note); color:var(--note);"><span class="ic"></span>Apply −3</div>
+              </div>
+              <div class="canvas" style="grid-template-columns:1.2fr 1fr; grid-template-rows:1fr 1fr;">
+                <div class="vc" style="grid-row:1 / span 2;">
+                  <div class="vt">Components <span class="mut">20 · click inspect · dbl = exclude</span></div>
+                  <div class="pa">
+                    <div class="cgrid">
+                      <div></div><div></div><div class="exc"></div><div></div>
+                      <div></div><div class="exc"></div><div></div><div></div>
+                      <div></div><div></div><div></div><div class="exc"></div>
+                      <div></div><div></div><div></div><div></div>
+                    </div>
+                    <div style="position:absolute; left:0; right:0; bottom:2px; text-align:center; font-size:7px; color:var(--muted);">＋ 4 more · scroll</div>
+                  </div>
+                </div>
+                <div class="vc"><div class="vt">Properties · IC 2 <span class="mut">plot_properties</span></div><div class="pa" data-x style="position:relative;"></div></div>
+                <div class="vc"><div class="vt">Clean vs raw overlay <span class="mut">before apply</span></div><div class="pa"><svg class="rk" data-wave></svg></div></div>
+              </div>
+              <div class="inspector">
+                <div class="il">Component · IC 2</div>
+                <div class="pa" data-topo style="height:46px; position:relative; border:1.3px solid var(--muted); border-radius:4px;"></div>
+                <div class="rowline">ICLabel <span style="color:var(--note)">eye 0.97</span></div>
+                <div class="rowline">EOG corr <span>0.88</span></div>
+                <div class="rowline">var. explained <span>11%</span></div>
+                <span class="chip" style="text-align:center;">mark for removal</span>
+              </div>
+            </div>
+            <div class="strip">
+              <div class="dag"><span class="st">1–40 Hz</span><span class="ar">→</span><span class="st">fit ICA picard</span><span class="ar">→</span><span class="st">ICLabel</span><span class="ar">→</span><span class="st ghost">apply −[0,2,7]</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="abcap">gated: needs montage + ≥1 Hz high-pass (P0.7)</div>
+      </div>
+      <div class="notes">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>v1:</b> fit → topo grid + variance → click for time-course + PSD → double-click to exclude → apply (revertible). No labels, no properties panel, no overlay, no confirm dialog. <b>This proposes</b> the full ICA loop.</p>
+        <ol>
+          <li class="warn"><span class="lead">ICLabel.</span> <span class="tagword t-prop">PROPOSED</span> — <code>mne-icalabel</code> classifies each component (brain / eye / muscle / heart / line / channel) with a probability. "Auto-exclude eye+muscle ≥ 0.8" as one action. The single biggest ICA time-saver.</li>
+          <li><span class="lead">Properties card.</span> <span class="tagword t-prop">PROPOSED</span> — the real <code>plot_properties</code> (topo + epochs-image + ERP + PSD + variance), server-rendered (P0.5). v1 shows only a time-course and a spectrum.</li>
+          <li><span class="lead">Clean/raw overlay.</span> <span class="tagword t-prop">PROPOSED</span> — a 2-leaf DAG compare (P0.6): ghost the <code>replay(step−1)</code> signal behind current so you see what apply removes <i>before</i> committing.</li>
+          <li><span class="lead">Methods + <code>find_bads_*</code>.</span> <span class="tagword t-prop">PROPOSED</span> — <code>picard</code> / <code>infomax</code>; <code>find_bads_eog/ecg/muscle</code> + a <code>plot_scores</code> card. Fit on Epochs too.</li>
+          <li><span class="lead">Apply guard.</span> <span class="tagword t-open">OPEN Q</span> — dialog vs the DAG making it cheap to undo. Default: a one-line confirm, since apply rewrites the signal (records a snapshot step already).</li>
+        </ol>
+        <div class="priorart"><b>Prior art</b><br/>EEGLAB ICLabel + <code>pop_selectcomps</code>; MNE's <code>ica.plot_components</code> + <code>plot_properties</code>. The bet: the same workflow, but the exclusion set is a revertible ledger step and the overlay is live.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 8 · EPOCHS / EVOKED ═══════════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">06 — Epochs &amp; Evoked workspace</span><span>p.8 / 14</span></div>
+  <div class="pbody">
+    <div class="screen">
+      <div class="abcol">
+        <div class="browser">
+          <wired-card class="frame" elevation="3"></wired-card>
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:5173/s/8f3a…/evoked</span></div>
+          <div class="screenwrap">
+            <div class="cmdbar"><span class="plus">＋ Operation</span><span class="k">⌘K · input: Evoked</span><span class="chip">2 conditions</span><span class="chip cap">baseline −0.2–0</span></div>
+            <div class="worow">
+              <div class="rail">
+                <div class="rl">Containers</div>
+                <div class="node"><span class="ic"></span>Raw</div>
+                <div class="node kid"><span class="ic"></span>Epochs <span style="font-size:7px;">/318</span></div>
+                <div class="node kid on"><span class="ic on"></span>Evoked</div>
+                <div class="node kid kid ghost"><span class="ic"></span>standard</div>
+                <div class="node kid kid ghost"><span class="ic"></span>oddball</div>
+                <div class="node ghost"><span class="ic"></span>Source ▸</div>
+              </div>
+              <div class="canvas" style="grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;">
+                <div class="vc"><div class="vt">Evoked butterfly + GFP</div><div class="pa"><svg class="rk" data-wave></svg></div></div>
+                <div class="vc"><div class="vt">Joint — topo pins</div><div class="pa" data-x style="position:relative;"></div></div>
+                <div class="vc"><div class="vt">Compare conditions ± CI <span class="cx">2</span></div><div class="pa"><svg class="rk" data-psd></svg></div></div>
+                <div class="vc"><div class="vt">Epochs image <span class="mut">sorted by RT</span></div><div class="pa" data-heat style="position:relative;"></div></div>
+              </div>
+              <div class="inspector">
+                <div class="il">Peak / time</div>
+                <div class="rowline">N100 <span>−2.1 µV</span></div>
+                <div class="rowline">P300 <span>4.8 µV @ 372ms</span></div>
+                <div class="il" style="margin-top:4px;">Metadata query <span class="cx">3</span></div>
+                <div style="border:1.3px solid var(--muted); border-radius:4px; padding:2px 5px; font-size:7.5px; color:var(--ink2);">RT &lt; 0.8 and acc == 1</div>
+                <div class="rowline">→ epochs <span>241 / 318</span></div>
+                <span class="chip" style="text-align:center;">re-average</span>
+              </div>
+            </div>
+            <div class="strip">
+              <div class="dag"><span class="st">clean Raw</span><span class="ar">→</span><span class="st">events (stim)</span><span class="ar">→</span><span class="st">epochs −0.2–0.8</span><span class="ar">→</span><span class="st">autoreject −77</span><span class="ar">→</span><span class="st on" style="background:var(--ink); color:#fff;">average ×2</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="abcap">Epochs + Evoked are first-class rail nodes; conditions nest</div>
+      </div>
+      <div class="notes">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>v1:</b> epoching endpoints exist (<code>from-annotations</code>, <code>fixed-length</code>) and store an <code>mne.Epochs</code> — but <b>nothing in the UI creates or shows epochs</b>. Evoked doesn't exist at all. This is a dead limb.</p>
+        <ol>
+          <li class="warn"><span class="lead">Events → Epochs → Evoked as containers.</span> <span class="tagword t-prop">PROPOSED</span> — <code>find_events</code> / <code>events_from_annotations</code> / <code>make_fixed_length_events</code>; an editable events table + raster; <code>Epochs</code> with reject/flat/<code>reject_by_annotation</code> + autoreject.</li>
+          <li><span class="lead">Evoked cards.</span> <span class="tagword t-prop">PROPOSED</span> — butterfly + GFP, <code>plot_joint</code>, topo sequence / <code>animate_topomap</code>, <code>plot_white</code>, <code>plot_compare_evokeds</code> (± CI). Server-rendered (P0.5), cursor-linked.</li>
+          <li><span class="lead">Metadata.</span> <span class="tagword t-prop">PROPOSED</span> — <code>make_metadata</code> + a pandas-query box → subset epochs → re-average without re-epoching. The reason to use Epochs at all.</li>
+          <li><span class="lead">Field map.</span> <span class="tagword t-prop">PROPOSED</span> — <code>make_field_map</code> + <code>evoked.plot_field</code>: the <i>principled</i> scalp/helmet field (spherical-spline), i.e. what v1's <code>ScalpField3D</code> fakes with inverse-distance weighting. No inverse pipeline needed.</li>
+          <li><span class="lead">Averaging method.</span> <span class="tagword t-open">OPEN Q</span> — mean vs median vs robust default; how to present <code>combine_evoked</code> / <code>grand_average</code> for the single-subject tool.</li>
+        </ol>
+        <div class="priorart"><b>Prior art</b><br/>ERPLAB, FieldTrip's <code>ft_timelockanalysis</code>. The bet: epoching is an <i>operation</i> in the same registry, the conditions are rail nodes, and the ERP is one branch of the same provenance graph as the cleaning.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 9 · TIME-FREQUENCY ═══════════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">07 — Time-Frequency workspace</span><span>p.9 / 14</span></div>
+  <div class="pbody">
+    <div class="screen">
+      <div class="abcol">
+        <div class="browser">
+          <wired-card class="frame" elevation="3"></wired-card>
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:5173/s/8f3a…/tfr</span></div>
+          <div class="screenwrap">
+            <div class="cmdbar"><span class="plus">＋ Operation</span><span class="k">⌘K · input: Epochs → TFR</span><span class="chip">Morlet · 3–40 Hz</span><span class="chip">baseline: logratio</span></div>
+            <div class="worow">
+              <div class="rail">
+                <div class="rl">Containers</div>
+                <div class="node"><span class="ic"></span>Raw</div>
+                <div class="node kid"><span class="ic"></span>Epochs</div>
+                <div class="node kid on"><span class="ic on"></span>TFR</div>
+                <div class="node ghost"><span class="ic"></span>Spectrum</div>
+                <div class="rl">Method</div>
+                <div class="node on"><span class="ic on"></span>Morlet</div>
+                <div class="node ghost"><span class="ic"></span>Multitaper</div>
+                <div class="node ghost"><span class="ic"></span>Stockwell</div>
+              </div>
+              <div class="canvas" style="grid-template-columns:1.4fr 1fr; grid-template-rows:1fr 1fr;">
+                <div class="vc" style="grid-row:1 / span 2;"><div class="vt">TFR · Cz <span class="mut">power (dB) · cursor-linked</span></div><div class="pa" data-heat style="position:relative;"></div></div>
+                <div class="vc"><div class="vt">ITC · Cz <span class="cx">2</span></div><div class="pa" data-heat style="position:relative;"></div></div>
+                <div class="vc"><div class="vt">Topo @ 10 Hz · 0.3 s <span class="mut">scrubs with cursor</span></div><div class="pa"><svg class="rk" data-topo></svg></div></div>
+              </div>
+              <div class="inspector">
+                <div class="il">Time-freq box <span class="cx">3</span></div>
+                <div class="rowline">f <span>8–12 Hz</span></div>
+                <div class="rowline">t <span>0.1–0.5 s</span></div>
+                <div class="rowline">mean power <span>−1.8 dB</span></div>
+                <span class="chip" style="text-align:center;">→ topomap</span>
+                <span class="chip">→ cluster stats</span>
+              </div>
+            </div>
+            <div class="strip">
+              <div class="transport"><span class="btn">▶</span><span>0.30 s</span><div class="mmap"></div><span style="font-size:8px; color:var(--ink2);">−0.2 ▁▂▅▇▅▂▁ 0.8 s</span></div>
+              <div class="dag"><span class="st">epochs</span><span class="ar">→</span><span class="st">tfr_morlet</span><span class="ar">→</span><span class="st">baseline logratio</span><span class="ar">→</span><span class="st ghost">＋ permutation cluster</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="abcap">continuous spectrogram on Raw uses the same card</div>
+      </div>
+      <div class="notes">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>v1:</b> Welch PSD (whole recording) + a band-power heatmap. No time-frequency at all — the single most-requested EEG view that's missing.</p>
+        <ol>
+          <li class="warn"><span class="lead">TFR container.</span> <span class="tagword t-prop">PROPOSED</span> — <code>tfr_morlet</code> / <code>tfr_multitaper</code> / <code>tfr_stockwell</code> on Epochs (or Raw for a continuous spectrogram). Method is a rail sub-choice; params via the auto-form.</li>
+          <li><span class="lead">ITC.</span> <span class="tagword t-prop">PROPOSED</span> — inter-trial coherence alongside power (both come from the same call). Its own card.</li>
+          <li><span class="lead">Time-freq ROI → downstream.</span> <span class="tagword t-prop">PROPOSED</span> — drag a box on the TFR → feed a topomap at that band/latency, or a cluster-stats contrast (P7). The inspector carries the ROI.</li>
+          <li><span class="lead">Windowed PSD.</span> <span class="tagword t-prop">PROPOSED</span> — add <code>start</code>/<code>dur</code> to the PSD op so Spectrum + Band-power animate as the transport sweeps. v1's spectral panels are static during playback.</li>
+          <li><span class="lead">Baseline mode.</span> <span class="tagword t-open">OPEN Q</span> — logratio / percent / zscore default; where baseline is set (op param vs a card control).</li>
+        </ol>
+        <div class="priorart"><b>Prior art</b><br/>EEGLAB <code>newtimef</code>, FieldTrip <code>ft_freqanalysis</code>. The bet: TFR is just another container off Epochs, on the shared canvas, feeding the shared stats and source stages.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 10 · SOURCE ═══════════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">08 — Source workspace — the 3D brain</span><span>p.10 / 14</span></div>
+  <div class="pbody">
+    <div class="screen">
+      <div class="abcol">
+        <div class="browser">
+          <wired-card class="frame" elevation="3"></wired-card>
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:5173/s/8f3a…/source</span></div>
+          <div class="screenwrap">
+            <div class="cmdbar"><span class="plus">＋ Operation</span><span class="k">⌘K · input: Evoked + Forward + Covariance</span><span class="chip cap">dSPM</span></div>
+            <div class="worow">
+              <div class="rail">
+                <div class="rl">Source setup <span class="cx">1</span></div>
+                <div class="node"><span class="ic on"></span>1 · fsaverage ✓</div>
+                <div class="node"><span class="ic on"></span>2 · BEM + forward ✓</div>
+                <div class="node"><span class="ic on"></span>3 · coreg ✓</div>
+                <div class="node"><span class="ic on"></span>4 · covariance ✓</div>
+                <div class="node on"><span class="ic on"></span>5 · inverse</div>
+                <div class="rl">Result</div>
+                <div class="node"><span class="ic on"></span>SourceEstimate</div>
+              </div>
+              <div class="canvas" style="grid-template-columns:1.5fr 1fr; grid-template-rows:1.4fr 1fr;">
+                <div class="vc" style="grid-row:1 / span 2;"><div class="vt">Inflated brain · fsaverage <span class="mut">dSPM @ 372 ms · lat/med/dorsal</span> <span class="cx">2</span></div><div class="pa"><svg class="rk" data-brain></svg></div></div>
+                <div class="vc"><div class="vt">Source time course <span class="mut">peak vertex + label</span></div><div class="pa"><svg class="rk" data-psd></svg></div></div>
+                <div class="vc"><div class="vt">Label time courses <span class="mut">aparc · 68 ROIs <span class="cx">3</span></span></div><div class="pa"><svg class="rk" data-wave></svg></div></div>
+              </div>
+              <div class="inspector">
+                <div class="il">Vertex / label</div>
+                <div class="rowline">label <span>bankssts-lh</span></div>
+                <div class="rowline">peak <span>7.9 @ 372ms</span></div>
+                <div class="il" style="margin-top:3px;">Inverse</div>
+                <div class="seg" style="font-size:7px;"><span class="on">dSPM</span><span>sLORETA</span><span>eLORETA</span></div>
+                <div class="rowline">SNR² <span>9</span></div>
+                <span class="chip">LCMV beamformer</span>
+                <span class="chip">fit dipole</span>
+              </div>
+            </div>
+            <div class="strip">
+              <div class="transport"><span class="btn">▶</span><span>372 ms</span><div class="mmap"></div></div>
+              <div class="dag"><span class="st">Evoked</span><span class="ar">→</span><span class="st">fsaverage fwd</span><span class="ar">→</span><span class="st">noise cov</span><span class="ar">→</span><span class="st">inv dSPM</span><span class="ar">→</span><span class="st on" style="background:var(--ink); color:#fff;">apply_inverse</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="abcap">gated workspace · server-rendered brain frames (P0.5 / P6) · replaces the fake "Scalp field"</div>
+      </div>
+      <div class="notes">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>v1:</b> the "Scalp field" panel is an inverse-distance interpolation of sensor voltages drawn as an oblique wireframe — <b>not a brain</b>, and there's no inverse pipeline behind it. This proposes the real thing, honestly gated.</p>
+        <ol>
+          <li class="warn"><span class="lead">Setup wizard.</span> <span class="tagword t-prop">PROPOSED</span> — 5 gated steps (P0.7): <code>fetch_fsaverage</code> (~1 GB job) → BEM + <code>make_forward_solution</code> → coregistration → <code>compute_covariance</code> → <code>make_inverse_operator</code>. Each cached; each a ledger node.</li>
+          <li><span class="lead">The brain card.</span> <span class="tagword t-prop">PROPOSED</span> — <code>stc.plot()</code> on an inflated fsaverage, PyVista rendered <b>offscreen server-side</b> to frames keyed to cursor time (like the ICA topo PNGs). No WebGL brain mesh (dies in a hidden tab — v1 lesson). Colourbar, hemi/view controls.</li>
+          <li><span class="lead">Label time courses.</span> <span class="tagword t-prop">PROPOSED</span> — <code>extract_label_time_course</code> over a parcellation (aparc / a2009s / HCPMMP1 / Yeo). Click a label on the brain → its waveform; click a peak → the vertex.</li>
+          <li><span class="lead">Method + beamformers.</span> <span class="tagword t-prop">PROPOSED</span> — MNE / dSPM / sLORETA / eLORETA as an inspector switch (recompute is cheap once the operator exists); LCMV / DICS and <code>fit_dipole</code> as alternative estimate ops.</li>
+          <li><span class="lead">Coreg without individual MRI.</span> <span class="tagword t-open">OPEN Q</span> — template fiducial fit for standard montages vs requiring digitized points; how loud the accuracy caveat needs to be. EEG + template head is coarse — the UI must not oversell it.</li>
+        </ol>
+        <div class="priorart"><b>Prior art</b><br/>The linked <a>stc_class tutorial</a> uses the <i>sample</i> dataset's pre-computed inverse — it hides every step above. Brainstorm's source pipeline is the gold standard; this is a gated, reproducible subset of it. Honest intermediate first: <code>evoked.plot_field</code> (P6.0).</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 11 · CONNECTIVITY ═══════════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">09 — Connectivity workspace</span><span>p.11 / 14</span></div>
+  <div class="pbody">
+    <div class="screen">
+      <div class="abcol">
+        <div class="browser">
+          <wired-card class="frame" elevation="3"></wired-card>
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:5173/s/8f3a…/connectivity</span></div>
+          <div class="screenwrap">
+            <div class="cmdbar"><span class="plus">＋ Operation</span><span class="k">⌘K · mne-connectivity</span><span class="chip">wPLI · alpha</span><span class="chip cap">label-space</span></div>
+            <div class="worow">
+              <div class="rail">
+                <div class="rl">Containers</div>
+                <div class="node"><span class="ic"></span>Epochs</div>
+                <div class="node ghost"><span class="ic"></span>Label TCs</div>
+                <div class="node on"><span class="ic on"></span>Connectivity</div>
+                <div class="rl">Measure</div>
+                <div class="node ghost"><span class="ic"></span>coh / imcoh</div>
+                <div class="node on"><span class="ic on"></span>wPLI</div>
+                <div class="node ghost"><span class="ic"></span>PLV / ciPLV</div>
+                <div class="node ghost"><span class="ic"></span>Granger</div>
+              </div>
+              <div class="canvas" style="grid-template-columns:1fr 1fr; grid-template-rows:1fr;">
+                <div class="vc"><div class="vt">Connectogram <span class="mut">circular · top 5%</span></div><div class="pa" data-wheel style="position:relative;"></div></div>
+                <div class="vc"><div class="vt">Matrix <span class="mut">node × node</span></div><div class="pa" data-heat style="position:relative;"></div></div>
+              </div>
+              <div class="inspector">
+                <div class="il">Edge</div>
+                <div class="rowline">nodes <span>F3 ↔ P4</span></div>
+                <div class="rowline">wPLI <span>0.41</span></div>
+                <div class="il" style="margin-top:3px;">Band</div>
+                <div class="seg" style="font-size:7px;"><span>θ</span><span class="on">α</span><span>β</span></div>
+                <div class="il" style="margin-top:3px;">Node grouping</div>
+                <div class="rowline" style="color:var(--muted)">by lobe · by hemisphere</div>
+              </div>
+            </div>
+            <div class="strip">
+              <div class="dag"><span class="st">epochs</span><span class="ar">→</span><span class="st">spectral_connectivity_epochs</span><span class="ar">→</span><span class="st">wPLI α</span><span class="ar">→</span><span class="st ghost">＋ stats vs baseline</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="abcap">sensor- or source-label space · same cards</div>
+      </div>
+      <div class="notes">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>v1:</b> nothing. <b>This proposes</b> the <code>mne-connectivity</code> companion package as a workspace.</p>
+        <ol>
+          <li class="warn"><span class="lead">Connectivity container.</span> <span class="tagword t-prop">PROPOSED</span> — <code>spectral_connectivity_epochs</code> / <code>_time</code>: coherence, imcoh, PLV, ciPLV, PLI, wPLI, PPC, Granger. From sensor Epochs or source label time-courses.</li>
+          <li><span class="lead">Cards.</span> <span class="tagword t-prop">PROPOSED</span> — connectogram (<code>plot_connectivity_circle</code>), node × node matrix, 3D sensor-lines. Node grouping by lobe / hemisphere / parcellation.</li>
+          <li><span class="lead">Also.</span> <span class="tagword t-prop">PROPOSED</span> — <code>envelope_correlation</code>, <code>phase_slope_index</code>, <code>vector_auto_regression</code>.</li>
+          <li><span class="lead">Threshold + stats.</span> <span class="tagword t-open">OPEN Q</span> — top-N% vs absolute vs permutation-thresholded edges as the default display.</li>
+          <li><span class="lead">Decoding shares this workspace slot.</span> <span class="tagword t-prop">PROPOSED</span> — <code>mne.decoding</code> (CSP, sliding estimator, temporal generalization, <code>ReceptiveField</code>) as a sibling "analysis" workspace, same card model.</li>
+        </ol>
+        <div class="priorart"><b>Prior art</b><br/>FieldTrip connectivity, Brainstorm connectivity. The bet: it rides the same containers — sensor Epochs or source labels — and the same stats stage.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 12 · PROVENANCE / EXPORT ═══════════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">10 — Provenance graph &amp; Export</span><span>p.12 / 14</span></div>
+  <div class="pbody">
+    <div class="screen">
+      <div class="abcol">
+        <div class="browser">
+          <wired-card class="frame" elevation="3"></wired-card>
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:5173/s/8f3a…/provenance</span></div>
+          <div class="screenwrap" style="padding:6px;">
+            <div style="display:flex; gap:8px; flex:1; min-height:0;">
+              <div class="vc" style="flex:1.2;">
+                <div class="vt">Pipeline — DAG <span class="mut">click a node = time-travel · branch = compare <span class="cx">1</span></span></div>
+                <div class="pa" style="position:relative; margin-top:4px;">
+                  <div style="font-size:8px; display:flex; flex-direction:column; gap:5px;">
+                    <div class="dag"><span class="st">ingest</span><span class="ar">→</span><span class="st">avg ref</span><span class="ar">→</span><span class="st">1–40 Hz</span><span class="ar">→</span><span class="st">notch 60</span><span class="ar">→</span><span class="st">bad+interp</span></div>
+                    <div class="dag" style="margin-left:70px;"><span class="ar">├→</span><span class="st">ICA picard → −3</span><span class="ar">→</span><span class="st on" style="background:var(--ink);color:#fff;">epochs → evoked ×2</span><span class="ar">→</span><span class="st ghost">source dSPM</span></div>
+                    <div class="dag" style="margin-left:70px;"><span class="ar">└→</span><span class="st" style="border-style:dashed;">ICA infomax → −4</span><span style="color:var(--muted); font-size:7px;">branch B — compare</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="propose" style="flex:1; display:flex; flex-direction:column;">
+                <div style="font-size:9px; font-weight:700;">Export <span class="cx">2</span></div>
+                <div style="font-size:7px; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink2); margin-top:5px;">Script</div>
+                <div class="rowline"><code>pipeline.py</code> — path to this node <span>copy · ⤓</span></div>
+                <div style="font-size:7px; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink2); margin-top:5px;">Data</div>
+                <div class="rowline">cleaned <code>raw.fif</code> / <code>epo.fif</code> / <code>ave.fif</code> <span>⤓</span></div>
+                <div class="rowline">EDF · EEGLAB · BrainVision <span>⤓</span></div>
+                <div class="rowline"><code>summary.csv</code> — band power + log <span>⤓</span></div>
+                <div style="font-size:7px; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink2); margin-top:5px;">Report &amp; BIDS</div>
+                <div class="rowline"><code>report.html</code> — <code>mne.Report</code>, every stage <span>build</span></div>
+                <div class="rowline">BIDS derivative — <code>write_raw_bids</code> <span>wizard</span></div>
+              </div>
+            </div>
+            <div class="vc" style="flex:0 0 auto; height:96px;">
+              <div class="vt"><code>pipeline.py</code> preview <span class="mut">live from the DAG path <span class="cx">3</span></span></div>
+              <div class="pa" style="font-family:'SF Mono',monospace; font-size:7px; color:var(--ink2); line-height:1.5; margin-top:2px;">
+                raw = mne.io.read_raw_fif('sub-04_raw.fif', preload=True)<br/>
+                raw.set_eeg_reference('average')<br/>
+                raw.filter(l_freq=1.0, h_freq=40.0);  raw.notch_filter(60)<br/>
+                raw.info['bads'] = ['T7','TP9'];  raw.interpolate_bads()<br/>
+                ica = ICA(n_components=20, method='picard').fit(raw);  ica.exclude = [0,2,7];  ica.apply(raw)<br/>
+                epochs = mne.Epochs(raw, events, {'standard':1,'oddball':2}, -0.2, 0.8)…
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="abcap">a route + a strip control · the ledger becomes a tree (P0.6)</div>
+      </div>
+      <div class="notes">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>v1:</b> a linear ledger (replay / revert / <code>to_python</code>), a History panel taking a permanent column, export = 3 <code>&lt;a download&gt;</code> links. Solid foundation. <b>This proposes</b> a branching graph + a real export surface.</p>
+        <ol>
+          <li class="warn"><span class="lead">Ledger → DAG.</span> <span class="tagword t-prop">PROPOSED</span> — entries get a <code>parent</code>; <code>branch(from_seq)</code> starts an alternative line. Revert = check out a node without deleting siblings. The research loop ("try A, try B, keep B") stops destroying work.</li>
+          <li><span class="lead">Compare.</span> <span class="tagword t-prop">PROPOSED</span> — pick two leaves → split card (filter A vs B on the waveform; two ICA solutions; two evokeds). Clean/raw overlay is the trivial case.</li>
+          <li><span class="lead"><code>pipeline.py</code> per leaf.</span> <span class="tagword t-now">NOW</span> the codegen works; <span class="tagword t-prop">PROPOSED</span> it emits the path to the selected node, and every registry op carries its own template (P0.2).</li>
+          <li><span class="lead">Report + BIDS.</span> <span class="tagword t-prop">PROPOSED</span> — <code>mne.Report</code> built from the DAG (add_raw / add_ica / add_evokeds / add_stc…); <code>write_raw_bids</code> + derivatives via a wizard.</li>
+          <li><span class="lead">History panel leaves the grid.</span> <span class="tagword t-prop">PROPOSED</span> — it's the bottom strip + this route now, not an always-on column (v1 audit P1).</li>
+        </ol>
+        <div class="priorart"><b>Prior art</b><br/>Brainstorm's process history; nipype / MNE-BIDS-Pipeline for reproducible batch. The bet: the interactive session <i>is</i> the pipeline definition — no separate "now write the script" step.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 13 · INSPECTOR STATES ═══════════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">11 — Inspector — context states</span><span>p.13 / 14</span></div>
+  <div class="pbody">
+    <div class="screen">
+      <div class="abcol">
+        <div class="browser">
+          <wired-card class="frame" elevation="3"></wired-card>
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">one panel · routed by selection</span></div>
+          <div class="screenwrap" style="padding:8px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; flex:1; min-height:0;">
+              <div class="vc"><div class="vt">Channel <span class="mut">T7</span></div>
+                <div class="pa" data-topo style="height:52px; position:relative; border:1.2px solid var(--muted); border-radius:4px; flex:0 0 auto;"></div>
+                <div class="rowline">type <span>eeg</span></div><div class="rowline">status <span style="color:var(--note)">bad (LOF 2.1)</span></div>
+                <div class="rowline">PSD <span>▂▃▅▇▅▃</span></div>
+                <div style="display:flex; gap:4px; margin-top:4px; flex-wrap:wrap;"><span class="chip">interpolate</span><span class="chip">unmark</span><span class="chip">set type</span></div>
+              </div>
+              <div class="vc"><div class="vt">Component <span class="mut">IC 2</span></div>
+                <div class="pa" data-topo style="height:52px; position:relative; border:1.2px solid var(--muted); border-radius:4px; flex:0 0 auto;"></div>
+                <div class="rowline">ICLabel <span style="color:var(--note)">eye 0.97</span></div><div class="rowline">EOG corr <span>0.88</span></div>
+                <div class="rowline">var. explained <span>11%</span></div>
+                <div style="display:flex; gap:4px; margin-top:4px;"><span class="chip on">exclude</span><span class="chip">properties</span></div>
+              </div>
+              <div class="vc"><div class="vt">Label <span class="mut">bankssts-lh</span></div>
+                <div class="pa" data-brain style="height:52px; position:relative; border:1.2px solid var(--muted); border-radius:4px; flex:0 0 auto;"></div>
+                <div class="rowline">parcellation <span>aparc</span></div><div class="rowline">peak <span>7.9 @ 372ms</span></div>
+                <div class="rowline">vertices <span>418</span></div>
+                <div style="display:flex; gap:4px; margin-top:4px;"><span class="chip">time course</span><span class="chip">→ connectivity node</span></div>
+              </div>
+              <div class="vc"><div class="vt">Step <span class="mut">DAG node #5</span></div>
+                <div style="font-family:monospace; font-size:7px; color:var(--ink2); margin-top:3px;">raw.interpolate_bads(reset_bads=True)</div>
+                <div class="rowline">before <span>2 bad</span></div><div class="rowline">after <span>0 bad · 64 good</span></div>
+                <div style="display:flex; gap:4px; margin-top:4px;"><span class="chip">revert to here</span><span class="chip">branch</span></div>
+              </div>
+              <div class="vc"><div class="vt">Edge <span class="mut">F3 ↔ P4</span></div>
+                <div class="pa" data-psd style="height:44px; position:relative; border:1.2px solid var(--muted); border-radius:4px; flex:0 0 auto;"></div>
+                <div class="rowline">wPLI (α) <span>0.41</span></div><div class="rowline">spectrum <span>peak 10.5 Hz</span></div>
+              </div>
+              <div class="vc" style="border-style:dashed; border-color:var(--propose);"><div class="vt" style="color:var(--propose);">Nothing selected</div>
+                <div class="greek" style="margin-top:6px;"><i style="width:80%"></i><i style="width:60%"></i></div>
+                <div style="font-size:7.5px; color:var(--ink2); margin-top:4px;">one short line — "click a channel, component, label, or step". No instructions wall.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="abcap">one <code>&lt;Inspector&gt;</code> · a router keyed on <code>store.selection</code></div>
+      </div>
+      <div class="notes">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>v1:</b> detail views are scattered — the ICA panel has its own right-split, the waveform has a focus channel, nothing coordinates them. <b>This proposes</b> one panel, six states.</p>
+        <ol>
+          <li class="warn"><span class="lead">One panel, routed by selection.</span> <span class="tagword t-prop">PROPOSED</span> — <code>store.selection</code> is a tagged union (channel / component / label / step / edge / none). The inspector renders the matching sub-view. Every card writes to the same selection.</li>
+          <li><span class="lead">Actions live here.</span> <span class="tagword t-prop">PROPOSED</span> — interpolate / exclude / revert / "promote to connectivity node" are on the selected object, not in a far-away toolbar.</li>
+          <li><span class="lead">Cross-links.</span> <span class="tagword t-prop">PROPOSED</span> — select a label → "→ connectivity node"; select a channel → highlighted in every card. The selection is the glue between workspaces.</li>
+          <li><span class="lead">Empty state.</span> <span class="tagword t-now">NOW</span> — one line, no instruction paragraph (v1 text-density lesson).</li>
+          <li><span class="lead">Docking.</span> <span class="tagword t-open">OPEN Q</span> — fixed right rail vs a floating panel near the selection vs collapsible. Default: fixed right, collapsible &lt; 1200px.</li>
+        </ol>
+        <div class="priorart"><b>Prior art</b><br/>Figma's properties panel; browser devtools' element inspector. One consistent home for "what is this thing and what can I do to it".</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 14 · DESIGN SYSTEM + RESPONSIVE ═══════════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis · MNE-Python, but a GUI</span><span class="mid">12 — Design system &amp; responsive</span><span>p.14 / 14</span></div>
+  <div class="pbody">
+    <div class="screen">
+      <div class="abcol">
+        <div class="browser">
+          <wired-card class="frame" elevation="3"></wired-card>
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">tokens · primitives · breakpoints</span></div>
+          <div class="screenwrap" style="padding:8px; gap:7px;">
+            <div style="display:flex; gap:8px;">
+              <div class="vc" style="flex:1;"><div class="vt">Type scale <span class="cx">1</span></div>
+                <div style="font-size:7px; color:var(--ink2);">2xs 10 · xs 11 · sm 12 · base 13 · md 14 · lg 16 · display 20</div>
+                <div style="font-family:monospace; font-size:8px; margin-top:3px;">tabular numerals for all data · 372.418 ms · −2.1 µV</div>
+              </div>
+              <div class="vc" style="flex:1;"><div class="vt">Colour <span class="mut">1 accent + semantic</span></div>
+                <div style="display:flex; gap:3px; margin-top:3px;"><span class="chip">bg</span><span class="chip on">accent</span><span class="chip" style="border-color:var(--note); color:var(--note)">alert</span><span class="chip" style="border-color:#2b9c5c; color:#2b9c5c">good</span></div>
+                <div style="font-size:7px; color:var(--ink2); margin-top:3px;">light + dark; canvas repaints off a themeTick (kept from v1)</div>
+              </div>
+            </div>
+            <div class="vc" style="flex:0 0 auto;"><div class="vt">Card anatomy <span class="cx">2</span></div>
+              <div style="font-size:7.5px; color:var(--ink2); margin-top:2px;">7px header (title · source · controls) → body owns resize → footer scale bar. min 240px, stack-don't-shrink. Every label truncates + tooltips — no clipping.</div>
+            </div>
+            <div class="vc" style="flex:1;"><div class="vt">Breakpoints <span class="cx">3</span></div>
+              <div style="display:flex; gap:6px; margin-top:4px; flex:1;">
+                <div style="flex:1.4; border:1.3px solid var(--muted); border-radius:4px; padding:3px; font-size:7px;">≥1200 — rail + canvas + inspector + strip <div class="greek"><i></i><i style="width:70%"></i></div></div>
+                <div style="flex:1; border:1.3px solid var(--muted); border-radius:4px; padding:3px; font-size:7px;">768–1200 — inspector collapses, rail → icons <div class="greek"><i></i></div></div>
+                <div style="flex:0.5; border:1.3px solid var(--muted); border-radius:4px; padding:3px; font-size:7px;">&lt;768 — one column, scroll, review-only <div class="greek"><i></i></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="abcap"><code>lib/design/</code> — tokens + primitives as code</div>
+      </div>
+      <div class="notes">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>v1 debt this fixes:</b> "EEGvis" overlapping "32" in the ticker, "Bad channe" clipped, axis labels reading "125250375Hz", column headers overlapping, bottom tabs wrapping, no layout below ~1000px.</p>
+        <ol>
+          <li class="warn"><span class="lead">Every label owns its box.</span> <span class="tagword t-prop">PROPOSED</span> — truncate + tooltip, never clip. Tabular numerals for all numeric data. One type scale, one spacing rhythm. This is P0.9 and it's non-negotiable.</li>
+          <li><span class="lead">Primitives as code.</span> <span class="tagword t-prop">PROPOSED</span> — <code>Card</code> / <code>Inspector</code> / <code>ParamForm</code> / <code>DataTable</code> / <code>Toolbar</code> / <code>Chip</code>. "Cluttered and ugly" is a structural fix, done once, not per-panel polish.</li>
+          <li><span class="lead">Real breakpoints.</span> <span class="tagword t-prop">PROPOSED</span> — 3 layouts by container width; the inspector and rail degrade gracefully; <code>&lt;768</code> is review-only (no <code>overflow:hidden</code> trap). v1 has none.</li>
+          <li><span class="lead">Keep from v1.</span> <span class="tagword t-now">NOW</span> — the sync-paint canvas substrate, <code>themeTick</code> repaint, Tailwind v4 tokens, the "dim don't blank on stale" rule. Those are good.</li>
+          <li><span class="lead">Aesthetic.</span> <span class="tagword t-open">OPEN Q</span> — "cool but clean": a restrained instrument look (thin rules, monospace data, one accent, generous negative space) vs more expressive. Wireframe stays neutral; pick in hi-fi.</li>
+        </ol>
+        <div class="priorart"><b>Prior art</b><br/>Linear, Vercel dashboards, Ableton — dense, calm, one accent. Not Bloomberg's wall of orange. Information density from hierarchy and whitespace, not from filling every pixel.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="bundle.js"></script>
+<script>
+  window.addEventListener('load', () => {
+    const R = window.rough;
+    if (!R) return;
+    const NS = 'http://www.w3.org/2000/svg';
+    const mk = (el) => { const s = document.createElementNS(NS, 'svg'); const w = el.clientWidth || 120, h = el.clientHeight || 60; s.setAttribute('viewBox', `0 0 ${w} ${h}`); s.setAttribute('preserveAspectRatio','none'); s.style.cssText = 'position:absolute;inset:0;width:100%;height:100%'; el.appendChild(s); return { s, rc: R.svg(s), w, h }; };
+    const O = { roughness: 1.5, stroke: '#9a9a9a', strokeWidth: 1 };
+
+    document.querySelectorAll('[data-x]').forEach((el) => {
+      const { s, rc, w, h } = mk(el);
+      s.appendChild(rc.line(4, 4, w - 4, h - 4, O)); s.appendChild(rc.line(w - 4, 4, 4, h - 4, O));
+    });
+    document.querySelectorAll('[data-wave]').forEach((el) => {
+      const { s, rc, w, h } = mk(el); const rows = 5;
+      for (let r = 0; r < rows; r++) {
+        const y = (h / rows) * (r + 0.5); const pts = [];
+        for (let x = 0; x <= w; x += 6) pts.push([x, y + Math.sin(x / 7 + r) * 4 + (Math.random() - 0.5) * 5]);
+        rc && s.appendChild(rc.linearPath(pts, { roughness: 1.2, stroke: '#8f8f8f', strokeWidth: 0.8 }));
+      }
+      s.appendChild(rc.line(w * 0.62, 0, w * 0.62, h, { roughness: 1, stroke: '#c0603a', strokeWidth: 1 }));
+    });
+    document.querySelectorAll('[data-psd]').forEach((el) => {
+      const { s, rc, w, h } = mk(el); const pts = [];
+      for (let x = 0; x <= w; x += 5) pts.push([x, 6 + (h - 12) * (1 - Math.exp(-x / (w * 0.35))) * 0.9 + (Math.random() - 0.5) * 3]);
+      rc && s.appendChild(rc.linearPath(pts, { roughness: 1.1, stroke: '#8f8f8f', strokeWidth: 1 }));
+    });
+    document.querySelectorAll('[data-topo], .cgrid > div').forEach((el) => {
+      const { s, rc, w, h } = mk(el); const c = Math.min(w, h) / 2 - 3, cx = w / 2, cy = h / 2;
+      rc && s.appendChild(rc.circle(cx, cy, c * 2, { roughness: 1.4, stroke: '#8f8f8f', strokeWidth: 1 }));
+      s.appendChild(rc.linearPath([[cx - c * 0.28, cy - c * 0.95], [cx, cy - c * 1.25], [cx + c * 0.28, cy - c * 0.95]], { roughness: 1.2, stroke: '#8f8f8f', strokeWidth: 1 }));
+      for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2; s.appendChild(rc.circle(cx + Math.cos(a) * c * 0.55, cy + Math.sin(a) * c * 0.55, 2, { fill: '#9a9a9a', stroke: '#9a9a9a' })); }
+      s.appendChild(rc.circle(cx - c * 0.3, cy + c * 0.2, c * 0.7, { roughness: 1.6, stroke: '#b9b9b9', strokeWidth: 0.7 }));
+    });
+    document.querySelectorAll('[data-brain]').forEach((el) => {
+      const { s, rc, w, h } = mk(el); const cx = w / 2, cy = h / 2, rx = w * 0.4, ry = h * 0.36;
+      rc && s.appendChild(rc.ellipse(cx, cy, rx * 2, ry * 2, { roughness: 1.7, stroke: '#8f8f8f', strokeWidth: 1.1 }));
+      s.appendChild(rc.line(cx, cy - ry, cx, cy + ry, { roughness: 1.5, stroke: '#a5a5a5', strokeWidth: 0.8 }));
+      for (let i = 0; i < 4; i++) { const yy = cy - ry * 0.5 + i * ry * 0.35; s.appendChild(rc.linearPath([[cx - rx * 0.8, yy], [cx - rx * 0.3, yy + 6], [cx + rx * 0.2, yy - 5], [cx + rx * 0.8, yy + 3]], { roughness: 2, stroke: '#b9b9b9', strokeWidth: 0.7 })); }
+      s.appendChild(rc.circle(cx + rx * 0.35, cy - ry * 0.1, 13, { fill: '#c9c9c9', fillStyle: 'solid', stroke: '#9a9a9a' }));
+    });
+    document.querySelectorAll('[data-heat]').forEach((el) => {
+      const { s, rc, w, h } = mk(el); const cols = 10, rows = 6;
+      for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+        if (Math.random() > 0.45) s.appendChild(rc.rectangle(i * w / cols + 1, j * h / rows + 1, w / cols - 2, h / rows - 2, { fill: '#ccc', fillStyle: 'solid', stroke: 'none' }));
+      }
+    });
+    document.querySelectorAll('[data-wheel]').forEach((el) => {
+      const { s, rc, w, h } = mk(el); const c = Math.min(w, h) / 2 - 4, cx = w / 2, cy = h / 2;
+      rc && s.appendChild(rc.circle(cx, cy, c * 2, { roughness: 1.4, stroke: '#8f8f8f', strokeWidth: 1 }));
+      for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; s.appendChild(rc.circle(cx + Math.cos(a) * c, cy + Math.sin(a) * c, 3, { fill: '#9a9a9a', stroke: '#9a9a9a' })); }
+      for (let k = 0; k < 7; k++) { const a1 = Math.random() * 6.28, a2 = Math.random() * 6.28; s.appendChild(rc.line(cx + Math.cos(a1) * c, cy + Math.sin(a1) * c, cx + Math.cos(a2) * c, cy + Math.sin(a2) * c, { roughness: 1.8, stroke: '#b9b9b9', strokeWidth: 0.6 })); }
+    });
+  });
+</script>
+</body>
+</html>
