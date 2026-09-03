@@ -30,19 +30,22 @@ verified in-app**. Additive: the older per-op routes still work alongside `/ops`
 | **P0.8** typed client codegen | ⏸ deferred | hand-written `client.ts` is fully typed + small; revisit when the API surface is larger |
 | **P0.9** param forms + design system | ✅ | `ParamForm.tsx`, `ui/primitives.tsx`; truncation + 860px responsive floor |
 | **P0.10** format / modality adapters + datasets | ✅ | `core/loader.py` (auto-detect + ~16 formats), `core/modality.py`, `core/datasets.py` |
-| **P0.11** session attach + `eegvis` plugin | ✅ (attach + `launch()`); disk persistence still TODO | `app/plugin.py`, `eegvis/`, `backend/pyproject.toml` |
-| **P0.12** test harness | ✅ backend (`test_op_contract.py` + 6 suites, 47 green); frontend Vitest TODO |
+| **P0.11** session attach + `eegvis` plugin + disk persistence | ✅ | `app/plugin.py`, `eegvis/`, `backend/pyproject.toml`, `services/persistence.py` (autosave → rehydrate on `GET`) |
+| **P0.12** test harness | ✅ | backend `test_op_contract.py` + 8 suites (50 green); frontend `vitest` (16 green) |
 | **P1** the shell | ✅ | `shell/Workspace.tsx` (CommandBar · ContainerRail · CardCanvas · Inspector · ProvenanceStrip), `lib/router.ts` |
 
-**What the shell does now:** routed `/s/:id` (survives refresh) · container-graph rail with
-ghost nodes · modular card canvas with per-container presets · ⌘K palette generating forms
-from the registry · real MNE topomap/sensor cards via the render service (the fake "Scalp
-field" is gone) · provenance filmstrip with fork markers + checkout · transport (play/scrub/
-speed) · one context inspector (channel / component / step) · ICA setup wizard · Connect with
-a format grid + `mne.datasets` picker.
+**What the shell does now:** routed `/s/:id` (survives refresh *and* a server restart —
+sessions autosave to `~/.eegvis/sessions/` and rehydrate on demand) · container-graph rail
+with ghost nodes · modular card canvas with per-container presets · ⌘K palette generating
+forms from the registry (montage picker is a real dropdown; ~9 ops) · real MNE topomap/sensor
+cards via the render service (the fake "Scalp field" is gone) · provenance filmstrip with fork
+markers + checkout · transport (play/scrub/speed) · one context inspector (channel /
+component / step) · ICA setup wizard · Connect with a format grid + `mne.datasets` picker +
+recent sessions.
 
-**Remaining before this branch merges cleanly:** frontend Vitest (P0.12), disk persistence +
-recent-sessions (P0.11), and a layout-density polish pass on the card grid.
+**The priority list (P0.1–P0.12 + P1) is done**, except P0.8 (deferred). Small follow-ups:
+a card-grid density pass, and porting the ICA "Apply" / component-inspect paths onto the
+registry.
 
 **Then the feature phases P2–P8 below** populate the registries — each is now ~1 `Operation`
 + ~1 `CardDef` per capability.
