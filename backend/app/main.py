@@ -7,7 +7,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import sessions as sessions_api
-from app.api import viewer, preprocessing, ica, epochs, spectral, export, provenance, geometry, ops, jobs, render
+from app.api import (
+    viewer, preprocessing, ica, epochs, spectral, export, provenance, geometry,
+    ops, jobs, render, datasets,
+)
 from app.core import operations  # noqa: F401  — importing populates the op registry
 from app.services.session_manager import sessions
 
@@ -51,6 +54,7 @@ app.include_router(geometry.router)
 app.include_router(ops.router)
 app.include_router(jobs.router)
 app.include_router(render.router)
+app.include_router(datasets.router)
 
 
 @app.get("/api/health")
