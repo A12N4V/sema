@@ -225,6 +225,21 @@ export const api = {
   getJob: (jobId: string) => req<Job>(`/api/jobs/${jobId}`),
   sessionJobs: (id: string) => req<{ jobs: Job[] }>(`/api/sessions/${id}/jobs`),
 
+  /** Server-rendered figure (topomap / sensors / ICA panel) → object-URL for <img>. */
+  render: async (id: string, spec: Record<string, unknown>): Promise<string> => {
+    const res = await fetch(`${BASE}/api/sessions/${id}/render`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(spec),
+    });
+    if (!res.ok) {
+      let detail = res.statusText;
+      try { detail = ((await res.json()) as { detail?: string }).detail ?? detail; } catch { /* */ }
+      throw new ApiError(res.status, detail);
+    }
+    return URL.createObjectURL(await res.blob());
+  },
+
   // --- ICA ---
   fitIca: (id: string, n_components: number, method = "fastica") =>
     req<{ n_components: number; components: ICAComponent[] }>(`/api/sessions/${id}/ica/fit`, j({ n_components, method })),
