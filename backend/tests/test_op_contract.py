@@ -16,9 +16,10 @@ _PARAMS: dict[str, dict] = {
     "notch": {"freqs": [60.0]},
     "resample": {"sfreq": 128.0},
     "set_montage": {"montage_name": "standard_1020"},
-    "set_reference": {"ref_channels": "average"},
+    "set_reference": {"mode": "average"},
     "set_bads": {"bads": ["T7"]},
     "interpolate_bads": {"reset_bads": True},
+    "annotate_amplitude": {"peak_uv": 150.0},
     "fit_ica": {"n_components": 6, "method": "fastica"},
 }
 
