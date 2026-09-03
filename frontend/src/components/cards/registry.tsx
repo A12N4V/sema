@@ -3,9 +3,9 @@ import { Waveform } from "../panels/Waveform";
 import { PSD } from "../panels/PSD";
 import { BandHeatmap } from "../panels/BandHeatmap";
 import { Minimap } from "../panels/Minimap";
-import { ICA } from "../panels/ICA";
 import { SensorsCard } from "./SensorsCard";
 import { TopographyCard } from "./TopographyCard";
+import { ICACard } from "./ICACard";
 
 export interface CardDef {
   id: string;
@@ -22,7 +22,7 @@ export const CARDS: CardDef[] = [
   { id: "sensors", title: "Sensors", container: "raw", Component: SensorsCard },
   { id: "psd", title: "Spectrum", container: "raw", Component: PSD },
   { id: "bandpower", title: "Band power", container: "raw", Component: BandHeatmap },
-  { id: "ica", title: "ICA", container: "ica", Component: ICA, span: { col: 3, row: 2 } },
+  { id: "ica", title: "ICA", container: "ica", Component: ICACard, span: { col: 3, row: 2 } },
   { id: "minimap", title: "Overview", container: "raw", Component: Minimap },
 ];
 

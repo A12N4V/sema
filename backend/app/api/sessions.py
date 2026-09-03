@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
@@ -67,6 +68,22 @@ def upload(file: UploadFile = File(...)) -> SessionInfo:
         raise HTTPException(status_code=422, detail=f"Failed to parse file: {e}")
 
     session = sessions.create(filename=safe_name or tmp_path.name, raw=raw)
+    return SessionInfo(session_id=session.id, filename=session.filename, **raw_summary(session.raw))
+
+
+@router.post("/attach", response_model=SessionInfo)
+def attach(file: UploadFile = File(...)) -> SessionInfo:
+    """Attach an in-memory Raw serialized to FIF — the ``eegvis.launch()`` path."""
+    tmp_dir = Path.home() / ".eegvis" / "uploads"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    tmp_path = tmp_dir / f"attach_{Path(file.filename or 'raw').name}"
+    with tmp_path.open("wb") as out:
+        shutil.copyfileobj(file.file, out)
+    try:
+        raw = load_raw(tmp_path)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Failed to read attached Raw: {e}")
+    session = sessions.create(filename=file.filename or "attached", raw=raw)
     return SessionInfo(session_id=session.id, filename=session.filename, **raw_summary(session.raw))
 
 

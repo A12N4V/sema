@@ -194,10 +194,14 @@ const graphSlice: StateCreator<Store, [], [], GraphSlice> = (set, get) => ({
     try {
       const g = await api.graph(s.session_id);
       const active = get().activeContainerId;
+      // keep the active id if it's a live node OR a known "prospective" container
+      // the user is setting up (e.g. "ica" while the fit wizard is open)
+      const prospective = ["ica", "epochs", "source", "spectrum", "tfr"];
+      const keep = g.graph.some((n) => n.id === active) || prospective.includes(active);
       set({
         containerGraph: g.graph,
         capabilities: g.capabilities,
-        activeContainerId: g.graph.some((n) => n.id === active) ? active : "raw",
+        activeContainerId: keep ? active : "raw",
       });
     } catch {
       /* ignore */
