@@ -53,3 +53,28 @@ export function magma(t: number): [number, number, number] {
 }
 
 export const rgb = ([r, g, b]: [number, number, number]) => `rgb(${r},${g},${b})`;
+
+type RGB = [number, number, number];
+const hexToRgb = (h: string): RGB => {
+  const m = h.replace("#", "");
+  const n = m.length === 3 ? m.split("").map((c) => c + c).join("") : m;
+  return [parseInt(n.slice(0, 2), 16), parseInt(n.slice(2, 4), 16), parseInt(n.slice(4, 6), 16)];
+};
+const mix = (a: RGB, b: RGB, k: number): RGB =>
+  [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k].map(Math.round) as RGB;
+
+/**
+ * Theme-matched heat ramp: t≈0 melts into the panel background, then climbs
+ * panel → accent → warn → near-white. Pass hex strings from `paint()`.
+ */
+export function heat(t: number, panelHex: string, accentHex: string, warnHex: string, fgHex: string): RGB {
+  const x = Math.max(0, Math.min(1, t));
+  const panel = hexToRgb(panelHex);
+  const accent = hexToRgb(accentHex);
+  const warn = hexToRgb(warnHex);
+  const fg = hexToRgb(fgHex);
+  if (x < 0.12) return mix(panel, accent, (x / 0.12) * 0.55);
+  if (x < 0.5) return mix(mix(panel, accent, 0.55), accent, (x - 0.12) / 0.38);
+  if (x < 0.82) return mix(accent, warn, (x - 0.5) / 0.32);
+  return mix(warn, fg, (x - 0.82) / 0.18);
+}

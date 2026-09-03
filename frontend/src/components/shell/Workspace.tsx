@@ -3,30 +3,35 @@ import { CommandBar } from "./CommandBar";
 import { ContainerRail } from "./ContainerRail";
 import { Inspector } from "./Inspector";
 import { ProvenanceStrip } from "./ProvenanceStrip";
+import { WorkstationLayout } from "./WorkstationLayout";
 import { CardCanvas } from "../cards/CardCanvas";
 import { PRESETS, defaultCards } from "../cards/registry";
 import { useStore } from "../../store/store";
 
 /**
- * The v2 shell: command bar (top) · container rail + card canvas + inspector
- * (middle) · transport + provenance (bottom). Replaces Terminal.tsx + Toolbar.
+ * The v2 shell: command bar (top) · container rail + main area + inspector
+ * (middle) · provenance (bottom). The main area is either the fixed
+ * "Workstation" layout (raw, default) or the modular card grid.
  */
 export function Workspace({ onNewSession }: { onNewSession: () => void }) {
   const active = useStore((s) => s.activeContainerId);
-  // per-container card list; unset = use the container's first preset
   const [layouts, setLayouts] = useState<Record<string, string[]>>({});
+  const [presetByContainer, setPresetByContainer] = useState<Record<string, number>>({});
 
-  const cards = useMemo(() => layouts[active] ?? defaultCards(active), [layouts, active]);
+  const presets = PRESETS[active] ?? [];
+  const presetIdx = presetByContainer[active] ?? 0;
+  const preset = presets[presetIdx];
+  const isWorkstation = preset?.layout === "workstation";
 
-  // which preset (if any) the current card list matches
-  const presetIdx = useMemo(() => {
-    const presets = PRESETS[active] ?? [];
-    return presets.findIndex((p) => p.cards.length === cards.length && p.cards.every((c, i) => c === cards[i]));
-  }, [active, cards]);
+  const cards = useMemo(
+    () => layouts[active] ?? preset?.cards ?? defaultCards(active),
+    [layouts, active, preset],
+  );
 
   const applyPreset = (i: number) => {
-    const preset = PRESETS[active]?.[i];
-    if (preset) setLayouts((l) => ({ ...l, [active]: [...preset.cards] }));
+    setPresetByContainer((p) => ({ ...p, [active]: i }));
+    const pr = PRESETS[active]?.[i];
+    if (pr) setLayouts((l) => ({ ...l, [active]: [...pr.cards] }));
   };
   const addCard = (id: string) => setLayouts((l) => ({ ...l, [active]: [...(l[active] ?? cards), id] }));
   const removeCard = (id: string) =>
@@ -34,11 +39,11 @@ export function Workspace({ onNewSession }: { onNewSession: () => void }) {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-bg">
-      <CommandBar cards={cards} onAddCard={addCard} onNewSession={onNewSession} />
+      <CommandBar cards={isWorkstation ? [] : cards} onAddCard={addCard} onNewSession={onNewSession} />
       <div className="flex min-h-0 flex-1">
         <ContainerRail presetIdx={presetIdx} onPreset={applyPreset} />
         <div className="min-w-0 flex-1">
-          <CardCanvas cardIds={cards} onRemove={removeCard} />
+          {isWorkstation ? <WorkstationLayout /> : <CardCanvas cardIds={cards} onRemove={removeCard} />}
         </div>
         <Inspector />
       </div>

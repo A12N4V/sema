@@ -205,7 +205,7 @@ export const api = {
   deleteSession: (id: string) => req<void>(`/api/sessions/${id}`, { method: "DELETE" }),
 
   // --- viewer / geometry ---
-  window: (id: string, p: { start: number; duration: number; channels?: string[]; max_points?: number }) =>
+  window: (id: string, p: { start: number; duration: number; channels?: string[]; max_points?: number; source?: "current" | "original" }) =>
     req<Wire>(`/api/sessions/${id}/viewer/window`, j(p)),
   overview: (id: string, nBins = 1200) =>
     req<OverviewResult>(`/api/sessions/${id}/viewer/overview?n_bins=${nBins}`),

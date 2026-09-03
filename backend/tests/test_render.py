@@ -29,6 +29,17 @@ def test_render_returns_png(client: TestClient, sid: str, spec: dict):
     assert r.content[:8] == b"\x89PNG\r\n\x1a\n"
 
 
+def test_render_field3d(client: TestClient, sid: str):
+    from app.core import render3d
+
+    if not render3d.available():
+        pytest.skip("pyvista not installed")
+    r = client.post(f"/api/sessions/{sid}/render",
+                    json={"view": "field3d", "t": 4.2, "width": 480, "height": 420})
+    assert r.status_code == 200, r.text
+    assert r.content[:8] == b"\x89PNG\r\n\x1a\n"
+
+
 def test_render_cache_key_changes_with_signal(client: TestClient, sid: str):
     from app.services.session_manager import sessions as mgr
     from app.core.render import RenderSpec

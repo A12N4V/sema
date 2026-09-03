@@ -19,11 +19,8 @@ def trace_window(session_id: str, req: TraceWindowRequest) -> dict:
         raise HTTPException(status_code=404, detail=str(e))
 
     with session.lock:
-        raw = session.raw
-        channels = req.channels or raw.ch_names
-        unknown = set(channels) - set(raw.ch_names)
-        if unknown:
-            raise HTTPException(status_code=400, detail=f"Unknown channel(s): {sorted(unknown)}")
+        raw = session.original_raw if req.source == "original" and session.original_raw is not None else session.raw
+        channels = [c for c in (req.channels or raw.ch_names) if c in raw.ch_names] or raw.ch_names
         if req.start >= raw.n_times / raw.info["sfreq"]:
             raise HTTPException(status_code=400, detail="Requested window is out of range")
 
