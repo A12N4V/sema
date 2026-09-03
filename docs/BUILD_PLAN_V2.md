@@ -15,26 +15,37 @@ Legend: 🔩 compounding system · `S/M/L/XL` effort · ⚠ has an unknown to re
 
 ## Progress
 
-Branch `v2-foundations` (additive — v1 shell and its per-op routes still work):
+Branch `v2-foundations` — the P0 compounding systems and the P1 shell are **built and
+verified in-app**. Additive: the older per-op routes still work alongside `/ops`.
 
-- ✅ **P0.1** container graph — `core/containers.py`: `ContainerKind`, `ContainerRef`,
-  `container_graph(session)`, `session_capabilities(session)`. `GET /api/sessions/{id}/graph`.
-  (Still derived from what's on the Session; the multi-node DAG is P4.)
-- ✅ **P0.2** operation registry — `core/operations/`: `Operation` + `register()`;
-  Raw-stage ops registered (filter, notch, resample, montage, reference, bads, fit_ica) +
-  new `interpolate_bads`. `GET /api/ops[?input=kind]`, `POST /api/sessions/{id}/ops`.
-- ✅ **P0.3** job runner — `services/jobs.py` (2-thread pool, `Job` states);
-  `long_running` ops return `202 {job_id}`; `GET /api/jobs/{id}`, `GET /api/sessions/{id}/jobs`.
-- ✅ **P0.7 seed** — capability tokens + gate in `POST /ops` (422 with "needs: …").
-- ✅ **P0.9 seed** — `components/ops/ParamForm.tsx` (renders any Pydantic JSON schema) +
-  `CommandPalette.tsx` (⌘K, ops grouped by stage, capability-gated, job-aware).
-- ✅ **P2 first item** — `interpolate_bads` (closes the mark-bad loop), in the palette and
-  the Bad-channels toolbar popover.
+| Item | Status | Where |
+|---|---|---|
+| **P0.1** container graph + lineage | ✅ | `core/containers.py`; `GET /sessions/{id}/graph` |
+| **P0.2** operation registry | ✅ | `core/operations/`; `GET /ops`, `POST /sessions/{id}/ops` |
+| **P0.3** generic endpoint + job runner | ✅ | `services/jobs.py`, `api/jobs.py`; `202 {job_id}` for long ops |
+| **P0.4** card registry + canvas substrate | ✅ | `components/cards/registry.tsx`, `CardCanvas.tsx` (reuses `lib/plot`) |
+| **P0.5** server render service | ✅ | `core/render.py`, `api/render.py`; disk-cached PNGs |
+| **P0.6** provenance DAG (branch/fork) | ✅ | `services/ledger.py` (parent + head); `replay(seq)` / checkout |
+| **P0.7** capability gating + wizard primitive | ✅ | gate in `/ops`; `components/ops/Wizard.tsx` (ICA setup flow) |
+| **P0.8** typed client codegen | ⏸ deferred | hand-written `client.ts` is fully typed + small; revisit when the API surface is larger |
+| **P0.9** param forms + design system | ✅ | `ParamForm.tsx`, `ui/primitives.tsx`; truncation + 860px responsive floor |
+| **P0.10** format / modality adapters + datasets | ✅ | `core/loader.py` (auto-detect + ~16 formats), `core/modality.py`, `core/datasets.py` |
+| **P0.11** session attach + `eegvis` plugin | ✅ (attach + `launch()`); disk persistence still TODO | `app/plugin.py`, `eegvis/`, `backend/pyproject.toml` |
+| **P0.12** test harness | ✅ backend (`test_op_contract.py` + 6 suites, 47 green); frontend Vitest TODO |
+| **P1** the shell | ✅ | `shell/Workspace.tsx` (CommandBar · ContainerRail · CardCanvas · Inspector · ProvenanceStrip), `lib/router.ts` |
 
-Tests: backend 24 green (`test_operations.py`, `test_jobs.py` new). Verified in the running app.
+**What the shell does now:** routed `/s/:id` (survives refresh) · container-graph rail with
+ghost nodes · modular card canvas with per-container presets · ⌘K palette generating forms
+from the registry · real MNE topomap/sensor cards via the render service (the fake "Scalp
+field" is gone) · provenance filmstrip with fork markers + checkout · transport (play/scrub/
+speed) · one context inspector (channel / component / step) · ICA setup wizard · Connect with
+a format grid + `mne.datasets` picker.
 
-**Next:** P0.4 (card registry + one renderer) → P0.5 (server render service) → then the P1
-shell assembles the rail + canvas + inspector around what's above.
+**Remaining before this branch merges cleanly:** frontend Vitest (P0.12), disk persistence +
+recent-sessions (P0.11), and a layout-density polish pass on the card grid.
+
+**Then the feature phases P2–P8 below** populate the registries — each is now ~1 `Operation`
++ ~1 `CardDef` per capability.
 
 ---
 
