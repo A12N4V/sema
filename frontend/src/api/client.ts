@@ -194,6 +194,8 @@ export const api = {
     req<{ datasets: { name: string; label: string; modality: string }[] }>("/api/datasets"),
   openDataset: (name: string) =>
     req<{ job_id: string; state: string; dataset: string }>(`/api/datasets/${name}/open`, { method: "POST" }),
+  recent: () =>
+    req<{ recent: { session_id: string; filename: string; saved_at: number; steps: number }[] }>("/api/sessions/recent"),
   uploadFile: (file: File) => {
     const form = new FormData();
     form.append("file", file);

@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File
 from app.core.demo import make_demo_raw
 from app.core.loader import load_raw, raw_summary, UnsupportedFormatError, SUPPORTED_EXTENSIONS
 from app.models.schemas import SessionInfo
+from app.services import persistence
 from app.services.session_manager import sessions
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
@@ -69,6 +70,12 @@ def upload(file: UploadFile = File(...)) -> SessionInfo:
 
     session = sessions.create(filename=safe_name or tmp_path.name, raw=raw)
     return SessionInfo(session_id=session.id, filename=session.filename, **raw_summary(session.raw))
+
+
+@router.get("/recent")
+def recent() -> dict:
+    """Reopenable session bundles on disk, newest first (P0.11)."""
+    return {"recent": persistence.recent()}
 
 
 @router.post("/attach", response_model=SessionInfo)

@@ -13,10 +13,12 @@ export function Connect() {
   const [busy, setBusy] = useState<string | null>(null);
   const [drag, setDrag] = useState(false);
   const [datasets, setDatasets] = useState<{ name: string; label: string; modality: string }[]>([]);
+  const [recent, setRecent] = useState<{ session_id: string; filename: string; steps: number }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api.datasetCatalog().then((r) => setDatasets(r.datasets)).catch(() => {});
+    api.recent().then((r) => setRecent(r.recent)).catch(() => {});
   }, []);
 
   const land = (s: SessionInfo) => {
@@ -113,6 +115,24 @@ export function Connect() {
             ))}
           </div>
         </div>
+
+        {recent.length > 0 && (
+          <div className="mt-4">
+            <div className="mb-1.5 text-2xs uppercase tracking-wide text-fg-faint">Recent</div>
+            <div className="flex flex-col gap-1">
+              {recent.map((r) => (
+                <button
+                  key={r.session_id}
+                  onClick={() => navigate(`/s/${r.session_id}`)}
+                  className="flex items-center justify-between gap-2 rounded-xs border border-seam px-2.5 py-1.5 text-left text-xs text-fg-dim transition-colors hover:border-fg-faint hover:text-fg"
+                >
+                  <span className="mono truncate">{r.filename}</span>
+                  <span className="shrink-0 text-fg-faint">{r.steps} steps</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <p className="mt-4 text-2xs text-fg-faint">
           From a notebook: <code className="mono">eegvis.launch(raw)</code> · sessions are held in memory and expire after 2 h idle.
