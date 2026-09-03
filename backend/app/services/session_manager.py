@@ -122,6 +122,12 @@ class Session:
     def touch(self) -> None:
         self.last_used = time.time()
 
+    @property
+    def state_hash(self) -> str:
+        """Changes whenever the signal changes — render-cache key (P0.5)."""
+        from app.core.render import state_hash_for
+        return state_hash_for(self.raw, self.ledger.head, self.ica is not None)
+
     # --- mutating operations (each records a ledger entry) ----------------
 
     @_synchronized
