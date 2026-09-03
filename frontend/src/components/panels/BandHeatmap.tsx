@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { Panel } from "./Panel";
 import { usePanelData } from "./usePanelData";
 import { Heatmap } from "../../lib/plot/Heatmap";
-import { magma } from "../../lib/plot/scales";
 import { api, type BandPowerResult } from "../../api/client";
 import { useStore } from "../../store/store";
 import { useSignatureKey } from "../../store/useSignatureKey";
@@ -53,7 +52,6 @@ export function BandHeatmap() {
           rowLabels={rowLabels}
           colLabels={BAND_SHORT}
           domain={[0, 1]}
-          colormap={magma}
           highlight={{ col: colIdx >= 0 ? colIdx : undefined, row: rowIdx >= 0 ? rowIdx : undefined }}
           onCell={(r, c) => {
             setBand(BAND_ORDER[c]);

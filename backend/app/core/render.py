@@ -28,19 +28,22 @@ from app.core.spectral_ops import BANDS, compute_band_power  # noqa: E402
 
 
 class RenderSpec(BaseModel):
-    view: str = Field(..., description="topomap | sensors | ica_component | ica_properties")
+    view: str = Field(..., description="topomap | sensors | field3d | ica_component | ica_properties")
     source: Optional[str] = Field(None, description="topomap: 'cursor' | 'band'")
-    t: Optional[float] = Field(None, description="cursor time in seconds (topomap source='cursor')")
+    t: Optional[float] = Field(None, description="cursor time in seconds (topomap/field3d)")
     band: Optional[str] = Field(None, description="delta|theta|alpha|beta|gamma (topomap source='band')")
     component: Optional[int] = Field(None, description="ICA component index")
-    width: int = Field(320, ge=80, le=1200)
-    height: int = Field(320, ge=80, le=1200)
+    azimuth: float = Field(-35.0, description="field3d camera azimuth (deg)")
+    elevation: float = Field(16.0, description="field3d camera elevation (deg)")
+    width: int = Field(320, ge=80, le=1400)
+    height: int = Field(320, ge=80, le=1400)
 
     def cache_key(self, state_hash: str) -> str:
         # bucket the cursor time so scrubbing hits the cache
         tb = None if self.t is None else round(self.t, 1)
         parts = [self.view, self.source or "", str(tb), self.band or "",
-                 str(self.component), f"{self.width}x{self.height}", state_hash]
+                 str(self.component), f"{self.azimuth:.0f},{self.elevation:.0f}",
+                 f"{self.width}x{self.height}", state_hash]
         return hashlib.sha1("|".join(parts).encode()).hexdigest()[:16]
 
 
@@ -104,6 +107,23 @@ def _ica_properties(ica: mne.preprocessing.ICA, raw: mne.io.BaseRaw, idx: int, s
     return _fig_to_png(figs[0], max(spec.width, 520), max(spec.height, 420))
 
 
+def _field3d(raw: mne.io.BaseRaw, spec: RenderSpec) -> bytes:
+    from app.core import render3d, wire
+
+    if not render3d.available():
+        raise ValueError("3D rendering needs pyvista — `pip install pyvista`")
+    layout = wire.montage_layout(raw)
+    if not layout["has_montage"] or not layout["pos3d"]:
+        raise ValueError("Set a montage first — the 3D field needs electrode positions")
+    names = layout["channels"]
+    pos = np.asarray(layout["pos3d"], dtype=float)
+    vals = np.asarray(wire.field_at(raw, spec.t or 0.0, names)["values"], dtype=float)
+    return render3d.render_field(
+        vals, pos, width=spec.width, height=spec.height,
+        azimuth=spec.azimuth, elevation=spec.elevation,
+    )
+
+
 # --- dispatch + cache -----------------------------------------------------
 
 def render(session, spec: RenderSpec) -> bytes:
@@ -122,6 +142,8 @@ def render(session, spec: RenderSpec) -> bytes:
             png = _topomap_cursor(raw, spec.t or 0.0, spec)
     elif spec.view == "sensors":
         png = _sensors(raw, spec)
+    elif spec.view == "field3d":
+        png = _field3d(raw, spec)
     elif spec.view in ("ica_component", "ica_properties"):
         if session.ica is None:
             raise ValueError("No ICA fitted yet")

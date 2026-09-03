@@ -11,7 +11,7 @@ import { useSignatureKey } from "../../store/useSignatureKey";
 
 const GUTTER = 52;
 
-export function Waveform() {
+export function Waveform({ source = "current", compact = false }: { source?: "current" | "original"; compact?: boolean } = {}) {
   const session = useStore((s) => s.session);
   const selected = useStore((s) => s.selectedChannels);
   const windowStart = useStore((s) => s.windowStart);
@@ -25,16 +25,17 @@ export function Waveform() {
   const [gain, setGain] = useState(1);
 
   const id = session?.session_id;
+  const isOriginal = source === "original";
   const chans = selected.length ? selected : session?.channel_names.slice(0, 16) ?? [];
   const sigKey = useSignatureKey();
 
   const { data, state, error } = usePanelData<Wire>(
-    (signal) => api.window(id!, { start: windowStart, duration: windowDuration, channels: chans, max_points: 2400 }).then((r) => {
+    (signal) => api.window(id!, { start: windowStart, duration: windowDuration, channels: chans, max_points: compact ? 1200 : 2400, source }).then((r) => {
       if (signal.aborted) throw new DOMException("aborted", "AbortError");
       return r;
     }),
-    [id, windowStart, windowDuration, chans.join(","), sigKey],
-    { enabled: !!id, label: "Waveform" },
+    [id, windowStart, windowDuration, chans.join(","), source, isOriginal ? "" : sigKey],
+    { enabled: !!id, label: isOriginal ? "Original" : "Waveform" },
   );
 
   const spread = useMemo(() => {
@@ -159,13 +160,17 @@ export function Waveform() {
 
   return (
     <Panel
-      title="Waveform" fkey="F1" state={state} error={error}
+      title={isOriginal ? "Original recording" : "Waveform"} fkey="F1" state={state} error={error}
       emptyHint={session ? "Loading window…" : "No session"}
       right={
-        <div className="flex items-center gap-1">
-          <button className="rounded px-1 text-fg-dim hover:text-fg" onClick={() => setGain((g) => g * 1.3)}><Plus size={11} /></button>
-          <button className="rounded px-1 text-fg-dim hover:text-fg" onClick={() => setGain((g) => g / 1.3)}><Minus size={11} /></button>
-        </div>
+        isOriginal ? (
+          <span className="text-2xs text-fg-faint">pristine · read-only</span>
+        ) : (
+          <div className="flex items-center gap-1">
+            <button className="rounded px-1 text-fg-dim hover:text-fg" onClick={() => setGain((g) => g * 1.3)}><Plus size={11} /></button>
+            <button className="rounded px-1 text-fg-dim hover:text-fg" onClick={() => setGain((g) => g / 1.3)}><Minus size={11} /></button>
+          </div>
+        )
       }
     >
       <canvas

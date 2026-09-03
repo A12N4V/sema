@@ -30,6 +30,7 @@ class TraceWindowRequest(BaseModel):
     duration: float = Field(10, gt=0, description="Window length, in seconds")
     channels: Optional[list[str]] = Field(None, description="Subset of channel names; all if omitted")
     max_points: int = Field(2000, gt=10, le=20000)
+    source: str = Field("current", description="'current' signal or 'original' (pristine) recording")
 
 
 class BandpassRequest(BaseModel):

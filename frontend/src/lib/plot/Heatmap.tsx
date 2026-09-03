@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useCanvas } from "./useCanvas";
-import { magma, rgb, type Scale } from "./scales";
+import { heat, rgb, type Scale } from "./scales";
 import { linScale } from "./scales";
 import { paint } from "./paint";
 import { useStore } from "../../store/store";
@@ -10,6 +10,7 @@ interface Props {
   rowLabels?: string[];
   colLabels?: string[];
   domain?: [number, number];
+  /** override the theme heat ramp; gets t in [0,1] */
   colormap?: (t: number) => [number, number, number];
   onCell?: (row: number, col: number) => void;
   highlight?: { row?: number; col?: number };
@@ -18,7 +19,7 @@ interface Props {
 const M = { top: 16, right: 8, bottom: 8, left: 44 };
 
 export function Heatmap({
-  matrix, rowLabels = [], colLabels = [], domain, colormap = magma, onCell, highlight,
+  matrix, rowLabels = [], colLabels = [], domain, colormap, onCell, highlight,
 }: Props) {
   const geom = useRef<{ cw: number; ch: number } | null>(null);
   const themeTick = useStore((s) => s.themeTick);
@@ -31,6 +32,10 @@ export function Heatmap({
   const canvasRef = useCanvas(({ ctx, width, height }) => {
     if (!rows || !cols) return;
     const p = paint(themeTick);
+    // clear to the panel background so low cells melt into the card
+    ctx.fillStyle = p.panel;
+    ctx.fillRect(0, 0, width, height);
+    const cmap = colormap ?? ((t: number) => heat(t, p.panel, p.accent, p.warn, p.text));
     const plotW = width - M.left - M.right;
     const plotH = height - M.top - M.bottom;
     const cw = plotW / cols;
@@ -39,7 +44,7 @@ export function Heatmap({
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        ctx.fillStyle = rgb(colormap(Math.max(0, Math.min(1, norm(matrix[r][c])))));
+        ctx.fillStyle = rgb(cmap(Math.max(0, Math.min(1, norm(matrix[r][c])))));
         ctx.fillRect(M.left + c * cw, M.top + r * ch, Math.ceil(cw), Math.ceil(ch));
       }
     }
