@@ -276,22 +276,27 @@ Fills the Ingest / Montage / Filter / Artifact-ID rows of the matrix.
 - [ ] MEG per-type scaling + helmet topomap; fNIRS preprocessing chain + hbo/hbr views
 - **Exit:** every spectral view redraws off the shared cursor/window; TFR is a first-class container.
 
-## P6 — Source: the 3D brain — `XL` ⚠
+## P6 — Source: the inflated brain — `XL`
 
-Its own mini-plan. Gated behind the setup wizard (P0.7). See
-[`MNE_CAPABILITY_MAP.md`](MNE_CAPABILITY_MAP.md) §2 "The 3D brain, specifically".
+**Core loop shipped.** The `stc_class`-tutorial brain is live: `core/source.py`
+does the template pipeline (fsaverage prebuilt ico-5 src + BEM + `trans='fsaverage'`
+→ `make_forward_solution` cached on disk per montage → `make_ad_hoc_cov` →
+`make_inverse_operator` → `apply_inverse_raw` over an 8 s window around the cursor).
+`render_brain()` draws it with PyVista offscreen — inflated surface + FreeSurfer
+curvature greyscale + hot activation overlay + peak-vertex marker + composited
+colorbar/time label. `compute_source` operation (job, `requires=montage`, method =
+dSPM/MNE/sLORETA/eLORETA); render `view: "brain"` (+ hemi / brain_view); `SourceCard`
+with the compute CTA, the cursor-linked brain, and a peak-vertex activation trace.
+`GET /source` + `/source/timecourse`. 53 backend tests (`test_source.py`).
 
-- [ ] **P6.0** honest intermediate: `make_field_map` + `evoked.plot_field` and 2-D `plot_topomap` at cursor — replaces `ScalpField3D`'s hand-rolled IDW with the real thing; **no inverse pipeline needed**
-- [ ] **P6.1** `core/source.py` + `fetch_fsaverage` as a tracked job (P0.3), cached under `~/.eegvis/`
-- [ ] **P6.2** source space (`oct6`) + BEM (fsaverage ships one) + `make_forward_solution`, cached per (montage, subject); `plot_alignment` 3D card (server render, P0.5)
-- [ ] **P6.3** coregistration: template-fit (fiducials) for standard montages; ICP + a 3D `plot_alignment` adjust card for digitized; store `trans`
-- [ ] **P6.4** `compute_covariance` (from epochs / ad-hoc / baseline) op + `plot_cov` card + whitened-evoked check
-- [ ] **P6.5** `make_inverse_operator` + `apply_inverse` (dSPM default; MNE / sLORETA / eLORETA); `apply_inverse_raw` for a continuous stc
-- [ ] **P6.6** the **brain card**: PyVista offscreen → frames keyed to cursor time (P0.5), inflated fsaverage, colorbar, hemi/view controls; a source-time-course strip below
-- [ ] **P6.7** `extract_label_time_course` + parcellation picker (aparc / a2009s / HCPMMP1 / Yeo) → label table + TC card
-- [ ] **P6.8** beamformers (`make_lcmv` / `make_dics`), `fit_dipole` + `Dipole.plot_locations`, volume stc + ortho slices
+- [x] **P6.1–P6.6** fsaverage + forward (cached) + ad-hoc cov + inverse + `apply_inverse_raw` + the PyVista brain card, cursor-linked, hemi/view controls, trace strip
+- [ ] **P6.0** honest intermediate `evoked.plot_field` — partly moot now (superseded by the real brain), still nice for the no-inverse case
+- [ ] **P6.3** real coregistration UI (currently `trans='fsaverage'`, fine for standard montages; a `plot_alignment` adjust card for digitized)
+- [ ] **P6.4** `compute_covariance` from epochs / baseline (currently ad-hoc only) + `plot_cov` + whitened-evoked check
+- [ ] **P6.7** `extract_label_time_course` + parcellation picker (aparc / a2009s / HCPMMP1 / Yeo — all shipped with fsaverage) → label table + TC card
+- [ ] **P6.8** beamformers (`make_lcmv` / `make_dics`), `fit_dipole`, volume stc + ortho slices
 - [ ] **P6.9** `SourceMorph` → fsaverage for group work
-- **Exit:** montage → forward → covariance → inverse → an inflated brain that animates on the shared cursor, with label time-courses; `pipeline.py` reproduces the whole inverse.
+- [ ] stc over a bigger window / whole-recording at a lower sfreq; animate on playback
 
 ## P7 — Connectivity / Decoding / Stats — `L`
 
