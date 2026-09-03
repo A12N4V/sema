@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="fonts.css" />
+<title>EEGvis — Terminal Wireframes</title>
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Balsamiq Sans', 'Comic Sans MS', 'Segoe Print', cursive;
+    color: #2b2b2b; background: #fff;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  code, .mono { font-family: 'SF Mono', ui-monospace, Menlo, monospace; font-size: .84em; }
+
+  :root {
+    --ink: #2b2b2b; --ink2: #777; --muted: #b0b0b0; --greek: #d6d6d6;
+    --paper: #fff; --link: #35659f; --note: #c0603a;
+    --propose: #35659f; --wash: #edf3fb; --panel: #f4f4f4;
+    --amber: #b9832b;
+  }
+
+  /* ---------- page shell ---------- */
+  .page {
+    position: relative; width: 297mm; height: 209mm;
+    padding: 10mm 13mm 8mm; overflow: hidden;
+    display: flex; flex-direction: column; background: var(--paper);
+  }
+  .page:not(:last-child) { break-after: page; }
+  .phead {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--ink2);
+    border-bottom: 1.6px solid var(--ink); padding-bottom: 5px; flex: 0 0 auto;
+  }
+  .phead .mid { color: var(--ink); font-weight: 700; letter-spacing: 2.2px; }
+  .pbody { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding-top: 12px; }
+  .page.fill .pbody { align-items: stretch; }
+
+  /* ---------- primitives ---------- */
+  .ic { width: 11px; height: 11px; border: 1.5px solid currentColor; border-radius: 3px; display: inline-block; }
+  .ic.on { background: currentColor; }
+  .switch { width: 28px; height: 15px; border: 1.6px solid var(--ink); border-radius: 10px; position: relative; display: inline-block; flex: 0 0 auto; background: #fff; }
+  .switch .knob { position: absolute; top: 1.2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--ink); }
+  .switch.on { background: #e6e6e6; } .switch.on .knob { left: auto; right: 2px; }
+  .greek { display: block; margin: 4px 0 0; }
+  .greek i { display: block; height: 5px; border-radius: 3px; background: var(--greek); margin: 3.5px 0; }
+
+  h1.doc { font-size: 74px; margin: 0; line-height: .95; letter-spacing: -2px; }
+  .tag { font-size: 15px; color: var(--ink2); margin-top: 12px; max-width: 42ch; line-height: 1.45; }
+  .eyebrow { font-size: 9px; letter-spacing: 2.4px; text-transform: uppercase; color: var(--ink2); }
+
+  /* ---------- screen page ---------- */
+  .screen2 { display: flex; flex-direction: column; gap: 11px; width: 100%; height: 100%; }
+  .abcap { font-size: 8.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink2); text-align: center; }
+
+  .browser { position: relative; width: 1002px; height: 438px; margin: 0 auto; flex: 0 0 auto; }
+  .browser > wired-card.frame { position: absolute; inset: 0; display: block; width: 1002px; height: 438px; --wired-card-background-color: #fff; }
+  .browserwrap { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; padding: 8px 10px 10px; }
+  .chrome { display: flex; align-items: center; gap: 8px; padding: 0 2px 6px; flex: 0 0 auto; }
+  .chrome .dot { width: 7px; height: 7px; border-radius: 50%; border: 1.4px solid var(--ink2); }
+  .chrome .url { flex: 1; border: 1.4px solid var(--muted); border-radius: 5px; font-size: 8px; color: var(--ink2); padding: 3px 8px; }
+  .viewport { flex: 1; display: flex; flex-direction: column; min-height: 0; border: 1.3px solid #d8d8d8; border-radius: 3px; overflow: hidden; background: #0c0c0e; color: #d7d7d7; }
+
+  /* terminal chrome */
+  .ticker { flex: 0 0 auto; display: flex; align-items: center; gap: 7px; padding: 4px 9px; border-bottom: 1.2px solid #1c1c22; font-size: 7.5px; color: #8a8a8a; }
+  .ticker .rd { border: 1px solid #2c2c34; border-radius: 3px; padding: 1.5px 6px; white-space: nowrap; }
+  .ticker .rd b { color: #cfcfcf; }
+  .ticker .rd.warn { border-color: var(--note); color: var(--note); }
+  .ticker .live { width: 6px; height: 6px; border-radius: 50%; background: #4fb0ff; }
+
+  .wsbar { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; padding: 3px 9px; border-bottom: 1.2px solid #1c1c22; font-size: 7.5px; }
+  .wsbar .ws { padding: 2px 9px; border: 1px solid #2c2c34; border-bottom: none; border-radius: 4px 4px 0 0; color: #9a9a9a; }
+  .wsbar .ws.on { background: #17171c; color: #fff; border-color: #33333c; }
+
+  .grid { flex: 1; display: grid; min-height: 0; gap: 5px; padding: 6px 8px; }
+  .tile { border: 1.2px solid #26262e; border-radius: 4px; background: #0a0a0c; display: flex; flex-direction: column; min-height: 0; overflow: hidden; position: relative; }
+  .tile.act { border-color: #4fb0ff; }
+  .tile.prop { border-style: dashed; border-color: var(--propose); background: #0d1622; }
+  .tilehead { flex: 0 0 auto; display: flex; align-items: center; gap: 5px; padding: 3px 6px; border-bottom: 1px solid #1c1c22; font-size: 7px; letter-spacing: 1px; text-transform: uppercase; color: #8a8a8a; }
+  .tilehead .t { color: #d0d0d0; font-weight: 700; }
+  .tilehead .hc { margin-left: auto; display: flex; gap: 3px; color: #55555c; }
+  .tilebody { flex: 1; position: relative; min-height: 0; }
+  .plot { position: absolute; inset: 4px; }
+  .plot.stat { position: relative; inset: auto; margin: 4px; height: calc(100% - 8px); }
+
+  .cmdbar { flex: 0 0 auto; display: flex; align-items: center; gap: 7px; padding: 4px 9px; border-top: 1.2px solid #1c1c22; font-size: 8px; color: #9a9a9a; }
+  .cmdbar .prompt { color: #4fb0ff; font-weight: 700; }
+  .cmdbar .cin { flex: 1; border: 1px solid #2c2c34; border-radius: 3px; padding: 2px 7px; color: #cfcfcf; }
+  .cmdbar .hintc { color: #55555c; }
+
+  .fkeys { flex: 0 0 auto; display: flex; gap: 3px; padding: 3px 9px 5px; border-top: 1px solid #14141a; font-size: 6.5px; color: #7a7a7a; }
+  .fkeys .fk { flex: 1; text-align: center; border: 1px solid #24242c; border-radius: 3px; padding: 2px 0; }
+  .fkeys .fk b { color: #b7b7b7; }
+
+  .chanrail { width: 78px; flex: 0 0 auto; border-right: 1.2px solid #1c1c22; padding: 4px 4px; font-size: 7px; overflow: hidden; }
+  .chanrail .h { font-size: 6.5px; letter-spacing: 1px; text-transform: uppercase; color: #6a6a6a; margin-bottom: 3px; }
+  .chanrail .cr { display: flex; justify-content: space-between; padding: 1.5px 2px; border-top: 1px solid #18181e; color: #b0b0b0; }
+  .chanrail .cr.bad { color: var(--note); }
+
+  /* generic dark UI bits reused in tiles */
+  .seg { display: inline-flex; border: 1.4px solid #3a3a44; border-radius: 6px; overflow: hidden; font-size: 7px; }
+  .seg span { padding: 2px 8px; color: #aaa; }
+  .seg span.on { background: #4fb0ff; color: #04121f; font-weight: 700; }
+  .seg span + span { border-left: 1.4px solid #3a3a44; }
+  .chip { font-size: 7px; padding: 2px 7px; border: 1.3px solid #3a3a44; border-radius: 10px; white-space: nowrap; color: #b0b0b0; }
+  .chip.on { background: #4fb0ff; color: #04121f; border-color: #4fb0ff; }
+  .chip.bad { border-color: var(--note); color: var(--note); }
+  .chip.prop { border-style: dashed; border-color: var(--propose); color: #8fb6e6; }
+  .btn { display: inline-block; border: 1.4px solid #3a3a44; border-radius: 5px; padding: 2px 9px; font-size: 7.5px; color: #cfcfcf; }
+  .btn.solid { background: #4fb0ff; color: #04121f; border-color: #4fb0ff; font-weight: 700; }
+  .rowk { display: flex; align-items: center; gap: 5px; font-size: 7.5px; color: #9a9a9a; padding: 2px 0; }
+  .rowk .inp { border: 1.2px solid #3a3a44; border-radius: 3px; padding: 1px 6px; color: #cfcfcf; min-width: 30px; text-align: center; }
+
+  .cx { display: inline-flex; width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--note); color: var(--note); background: var(--paper); font-size: 8.5px; line-height: 11px; justify-content: center; align-items: center; font-weight: 700; vertical-align: middle; margin-left: 3px; }
+  .cxd { position: absolute; z-index: 5; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--note); background: var(--paper); color: var(--note); font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+  /* ---------- annotation callouts ---------- */
+  .notes2 { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .notes2 h3 { font-size: 9px; letter-spacing: 2.2px; text-transform: uppercase; color: var(--ink2); margin: 0 0 3px; }
+  .ncontext { font-size: 9px; color: var(--ink2); line-height: 1.4; margin: 0 0 7px; padding-bottom: 6px; border-bottom: 1px solid #e6e6e6; }
+  .notegrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 9px 24px; counter-reset: c; }
+  .notegrid .n { position: relative; padding-left: 22px; font-size: 9.5px; line-height: 1.45; counter-increment: c; }
+  .notegrid .n::before { content: counter(c); position: absolute; left: 0; top: 0; width: 15px; height: 15px; border: 1.5px solid var(--note); color: var(--note); border-radius: 50%; text-align: center; font-size: 8.5px; line-height: 13px; font-weight: 700; }
+  .notegrid .n.warn::before { background: var(--note); color: #fff; }
+  .lead { font-weight: 700; }
+  .tagword { border: 1.4px solid; border-radius: 3px; padding: 0 3px; font-size: 7.5px; letter-spacing: .4px; white-space: nowrap; }
+  .t-prop { color: var(--propose); border-color: var(--propose); }
+  .t-open { color: var(--note); border-color: var(--note); }
+  .t-now  { color: var(--ink2); border-color: var(--muted); }
+  .priorart { margin-top: auto; padding-top: 6px; border-top: 1px solid #e6e6e6; font-size: 8.5px; color: var(--ink2); line-height: 1.45; }
+  .priorart b { color: var(--ink); letter-spacing: 1px; text-transform: uppercase; font-size: 7.5px; }
+
+  /* ---------- cover ---------- */
+  .cover { display: grid; grid-template-columns: 1.05fr .95fr; gap: 44px; width: 100%; height: 100%; align-content: center; align-items: center; }
+  .cover .l { display: flex; flex-direction: column; }
+  .cover .cbox { border: 1.7px solid var(--ink); border-radius: 8px; padding: 11px 13px; margin-top: 15px; }
+  .cover .cbox.prop { border-style: dashed; border-color: var(--propose); background: var(--wash); }
+  .cover .cbox h4 { margin: 0 0 4px; font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink2); }
+  .cover .cbox p { margin: 0; font-size: 10px; line-height: 1.5; }
+  .pillars { list-style: none; margin: 0; padding: 0; }
+  .pillars li { margin-bottom: 13px; padding-left: 30px; position: relative; font-size: 10.5px; line-height: 1.44; }
+  .pillars li:last-child { margin-bottom: 0; }
+  .pillars li b { font-size: 12px; display: block; margin-bottom: 2px; }
+  .pillars li .pn { position: absolute; left: 0; top: 0; width: 20px; height: 20px; border: 1.7px solid var(--ink); border-radius: 50%; text-align: center; line-height: 18px; font-size: 10px; font-weight: 700; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; border-top: 1.6px solid var(--ink); padding-top: 8px; margin-top: 10px; font-size: 8.5px; color: var(--ink2); flex: 0 0 auto; }
+  .legend .li { display: flex; align-items: center; gap: 5px; }
+  .sw { width: 26px; height: 15px; flex: 0 0 auto; display: inline-block; }
+  .sw.boxx { border: 1.7px solid var(--ink); }
+  .sw.dash { border: 1.7px dashed var(--propose); background: var(--wash); }
+  .sw.note { border: 1.5px solid var(--note); border-radius: 50%; width: 15px; height: 15px; color: var(--note); text-align: center; line-height: 13px; font-weight: 700; font-size: 8.5px; }
+  .toc { display: grid; grid-template-columns: repeat(5, 54px); gap: 11px; margin-top: 20px; }
+  .toc .t { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .toc .tm { width: 54px; height: 38px; border: 1.5px solid var(--muted); border-radius: 4px; position: relative; background: #111; }
+  .toc .tm::before { content: ''; position: absolute; left: 4px; right: 26px; top: 4px; height: 4px; background: #3a3a3a; border-radius: 2px; }
+  .toc .tm::after { content: ''; position: absolute; left: 4px; right: 4px; top: 12px; bottom: 4px; border: 1px solid #333; border-radius: 2px; }
+  .toc .tl { font-size: 6.5px; letter-spacing: .4px; text-transform: uppercase; color: var(--ink2); text-align: center; }
+
+  /* ---------- systems page ---------- */
+  .sys { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 34px; width: 100%; align-content: start; }
+  .sys h2 { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; margin: 0 0 8px; color: var(--ink); }
+  .sys .blk { font-size: 10px; line-height: 1.5; color: var(--ink2); }
+  .sys .blk b { color: var(--ink); }
+  .maprow2 { font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink2); margin-bottom: 4px; }
+  .pipe { display: flex; align-items: stretch; gap: 6px; }
+  .pipe .node { flex: 1; border: 1.5px solid var(--ink); border-radius: 6px; padding: 6px 5px; font-size: 8px; text-align: center; line-height: 1.3; }
+  .pipe .node .nh { font-weight: 700; font-size: 8.5px; display: block; margin-bottom: 2px; }
+  .pipe .arrow { align-self: center; color: var(--note); font-weight: 700; font-size: 13px; }
+  .tokrow { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+  .tok { font-size: 8px; border: 1.4px solid var(--muted); border-radius: 4px; padding: 3px 7px; }
+  .tok .sq { display: inline-block; width: 8px; height: 8px; border: 1px solid var(--ink); vertical-align: middle; margin-right: 4px; }
+  .maptbl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 9px; }
+  .maptbl .h { font-size: 7.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink2); }
+  .maptbl .c1 { font-weight: 700; }
+
+  /* ---------- IA / layout model ---------- */
+  .map { display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: space-evenly; gap: 20px; padding: 6px 0 14px; }
+  .layoutgrid { display: grid; grid-template-columns: 78px 1.5fr 1fr; grid-template-rows: 16px 1fr 1fr 14px; gap: 5px; height: 250px; border: 1.5px solid var(--ink); border-radius: 6px; padding: 7px; background: #fafafa; }
+  .layoutgrid .lz { border: 1.4px solid var(--muted); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; color: var(--ink2); text-align: center; line-height: 1.2; padding: 2px; }
+  .layoutgrid .lz.span2 { grid-row: span 2; }
+  .layoutgrid .lz.full { grid-column: 1 / -1; }
+  .layoutgrid .lz.prop { border-style: dashed; border-color: var(--propose); background: var(--wash); color: var(--propose); }
+  .presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .preset { border: 1.5px solid var(--ink); border-radius: 6px; padding: 8px 10px; font-size: 9px; line-height: 1.4; }
+  .preset b { font-size: 10.5px; display: block; margin-bottom: 2px; }
+  .flows { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 30px; font-size: 10px; line-height: 1.45; }
+  .flows .f { display: flex; gap: 8px; align-items: flex-start; }
+  .flows .f .a { color: var(--note); font-weight: 700; flex: 0 0 auto; font-size: 12px; }
+  .maprow { font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--ink2); }
+  .foot { font-size: 8px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  svg { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ PAGE 1 · COVER ═══════════ -->
+<section class="page fill">
+  <div class="phead"><span>EEGvis · a terminal for brain science</span><span class="mid">Low-Fidelity Wireframes</span><span>p.1 / 10</span></div>
+  <div class="pbody">
+    <div class="cover">
+      <div class="l">
+        <h1 class="doc">EEGvis</h1>
+        <div class="tag">A Bloomberg-style terminal for EEG. Every recording opens as one dense, linked workspace &mdash; waveform, 3D scalp field, spectra and ICA all driven by a shared time cursor &mdash; and it's a drop-in web UI for MNE-Python, launched from a notebook or the CLI.</div>
+        <div class="tag" style="font-size:10px; margin-top:12px; max-width:56ch;">
+          These frames redraw the working backend (M0&ndash;M4) and reframe the front end as a tiled terminal. New elements are tagged
+          <span class="tagword t-prop">PROPOSED</span>; unresolved calls <span class="tagword t-open">OPEN&nbsp;Q</span>.
+        </div>
+        <div class="toc">
+          <div class="t"><div class="tm"></div><div class="tl">p3 Connect</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p4 Terminal</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p5 Waveform</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p6 3D field</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p7 Spectral</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p8 ICA</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p9 Export</div></div>
+          <div class="t"><div class="tm"></div><div class="tl">p10 Layout</div></div>
+        </div>
+        <div class="cbox">
+          <h4>Built today (real MNE, smoke-tested)</h4>
+          <p>Upload &rarr; trace window &rarr; bandpass/notch/resample/re-ref/montage &rarr; ICA fit + topomap PNG + exclude/apply &rarr; Welch PSD + band power + band topomap &rarr; FIF export.</p>
+        </div>
+        <div class="cbox prop">
+          <h4>This deck proposes</h4>
+          <p>Tiled docking workspace, shared time cursor across panels, react-three-fiber 3D scalp heatmap, live spectrogram, small-multiples, command bar + F-keys, provenance ledger, runnable-<code>.py</code> / report export, <code>eegvis.launch(raw)</code> plugin entry.</p>
+        </div>
+      </div>
+      <div class="l">
+        <wired-card elevation="2" style="padding:20px; display:flex; flex-direction:column;">
+          <div style="font-size:9.5px; letter-spacing:2px; text-transform:uppercase; color:var(--ink2); margin-bottom:16px;">Three rules every panel earns against</div>
+          <ol class="pillars">
+            <li><span class="pn">1</span><b>One recording, one screen</b>Absolute-black tiled grid. Waveform, 3D field, PSD, spectrogram, ICA visible at once and <i>linked</i> &mdash; hover a time in one, every panel snaps to it. No wizard, no page reloads.</li>
+            <li><span class="pn">2</span><b>Terminal-fast</b>GPU rendering (WebGL / react-three-fiber), windowed fetches, a <code>:</code> command bar and F-key shortcuts. A power user never touches the mouse; nothing blocks the read.</li>
+            <li><span class="pn">3</span><b>A plugin, not a silo</b><code>pip install eegvis</code>; <code>eegvis.launch(raw)</code> from a notebook or <code>eegvis file.edf</code> from a shell. Every session exports the cleaned file <i>plus</i> the runnable MNE script that produced it.</li>
+          </ol>
+        </wired-card>
+      </div>
+    </div>
+  </div>
+  <div class="legend">
+    <span class="li"><span class="sw boxx"></span> exists in current build</span>
+    <span class="li"><span class="sw dash"></span> proposed / not yet built</span>
+    <span class="li"><span class="sw note">1</span> callout &mdash; see notes under each frame</span>
+    <span class="li">tags: <span class="tagword t-now">NOW</span> <span class="tagword t-prop">PROPOSED</span> <span class="tagword t-open">OPEN Q</span></span>
+  </div>
+</section>
+
+<!-- ═══════════ PAGE 2 · DESIGN LANGUAGE + MNE BRIDGE ═══════════ -->
+<section class="page fill">
+  <div class="phead"><span>EEGvis</span><span class="mid">Design Language &amp; the MNE Bridge</span><span>p.2 / 10</span></div>
+  <div class="pbody">
+    <div class="sys">
+
+      <div>
+        <h2>Terminal aesthetic</h2>
+        <div class="blk">Absolute-black (<code>#000</code> / panel <code>#0A0A0C</code>), 1px seams, one blue accent (<code>#4FB0FF</code>) + one amber for alerts. Data set in a mono face; labels in the UI face. Density over whitespace: a panel shows numbers, not captions. Every panel has a 16px header strip (title &middot; source &middot; sync-lock &middot; pop-out) and nothing else chrome-wise.</div>
+        <div class="tokrow">
+          <span class="tok"><span class="sq" style="background:#000"></span>--bg <code>#000</code></span>
+          <span class="tok"><span class="sq" style="background:#0a0a0c"></span>--panel</span>
+          <span class="tok"><span class="sq" style="background:#26262e"></span>--seam</span>
+          <span class="tok"><span class="sq" style="background:#4fb0ff"></span>--accent</span>
+          <span class="tok"><span class="sq" style="background:#c0603a"></span>--alert</span>
+          <span class="tok"><span class="sq" style="background:#d7d7d7"></span>--fg</span>
+        </div>
+        <div class="maprow2" style="margin-top:12px;">Input model</div>
+        <div class="maptbl">
+          <span class="h">Surface</span><span class="h">Does</span>
+          <span class="c1">: command bar</span><span><code>:hp 1</code> <code>:lp 40</code> <code>:notch 60</code> <code>:ica 20</code> <code>:goto 124.5s</code> <code>:export py</code></span>
+          <span class="c1">F1&ndash;F8</span><span>jump / toggle panels: F1 waveform &middot; F2 3D &middot; F3 PSD &middot; F4 spectro &middot; F5 ICA &middot; F6 steps &middot; F7 layout &middot; F8 export</span>
+          <span class="c1">&larr; &rarr; &uarr; &darr;</span><span>page window / change &micro;V-per-div; <code>[ ]</code> nudge cursor; <code>b</code> mark bad; <code>a</code> annotate</span>
+          <span class="c1">drag seams</span><span>resize tiles; drag header = re-dock; double-click header = solo</span>
+        </div>
+        <div class="maprow2" style="margin-top:12px;">Motion</div>
+        <div class="blk" style="font-size:9px;">Framer Motion, 90&ndash;200ms, easing <code>[0.22,1,0.36,1]</code>. The cursor line and panel data update every frame with no re-mount. Docking/solo animate; data never "loads" with a spinner &mdash; stale tiles dim to 60% until the fetch returns.</div>
+      </div>
+
+      <div>
+        <h2>Plugin entry &amp; the MNE bridge</h2>
+        <div class="blk">Nothing numeric in JS. The client sends intent; FastAPI mutates a live <code>Raw</code>/<code>Epochs</code>/<code>ICA</code> per session and returns a fresh summary + decimated arrays (or PNG). Three ways in, one session model:</div>
+        <div class="maptbl" style="margin-top:8px;">
+          <span class="h">Entry</span><span class="h">Mechanism</span>
+          <span class="c1">notebook</span><span><code>eegvis.launch(raw)</code> &rarr; serializes to the running server (or spawns one) &rarr; opens a browser tab on that session <span class="tagword t-prop" style="font-size:6.5px">PROPOSED</span></span>
+          <span class="c1">CLI</span><span><code>eegvis sub-04.edf</code> &rarr; starts backend + frontend, opens the terminal <span class="tagword t-prop" style="font-size:6.5px">PROPOSED</span></span>
+          <span class="c1">browser</span><span>drag a file onto the Connect screen <span class="tagword t-now" style="font-size:6.5px">NOW</span></span>
+        </div>
+        <div class="maprow2" style="margin-top:12px;">Request path</div>
+        <div class="pipe">
+          <div class="node"><span class="nh">panel</span><code>:</code> / F-key / drag intent</div>
+          <div class="arrow">&rarr;</div>
+          <div class="node"><span class="nh">api/client.ts</span>one typed fn / route</div>
+          <div class="arrow">&rarr;</div>
+          <div class="node"><span class="nh">FastAPI + core/*.py</span>MNE, in place</div>
+          <div class="arrow">&rarr;</div>
+          <div class="node"><span class="nh">store</span>SessionInfo + arrays &rarr; every linked tile</div>
+        </div>
+        <div class="maprow2" style="margin-top:12px;">Endpoints — live vs proposed</div>
+        <div class="maptbl">
+          <span class="h">Live (wrapped)</span><span class="h">Proposed (additive)</span>
+          <span class="c1">/viewer/window</span><span>/viewer/overview &mdash; 1 val/s minimap</span>
+          <span class="c1">/preprocessing/*</span><span>/history &mdash; provenance ledger</span>
+          <span class="c1">/ica/{fit,topomap,exclude,apply}</span><span>/ica/{i}/properties &middot; /icalabel</span>
+          <span class="c1">/spectral/{psd,band-power,band-topomap}</span><span>/spectral/tfr &middot; /spectral/psd?window=</span>
+          <span class="c1">/export/{raw,epochs}.fif</span><span>/export/{summary.csv, pipeline.py, report.pdf, bids}</span>
+          <span class="c1">/sessions/*</span><span>/sessions/attach &mdash; from notebook object</span>
+        </div>
+      </div>
+
+      <div style="grid-column:1 / -1; border-top:1.6px solid var(--ink); padding-top:11px;">
+        <h2>Build order &mdash; terminal on top of the working backend</h2>
+        <div class="pipe">
+          <div class="node"><span class="nh">R0 &middot; grid</span>Vite+Tailwind+shadcn, black theme, docking grid (react-mosaic), ticker + command bar + F-keys. Port current panels into tiles unchanged.</div>
+          <div class="arrow">&rarr;</div>
+          <div class="node"><span class="nh">R1 &middot; cursor</span>Shared time-cursor store; WebGL waveform + minimap; every tile subscribes. <code>/viewer/overview</code>.</div>
+          <div class="arrow">&rarr;</div>
+          <div class="node"><span class="nh">R2 &middot; 3D + spectral</span>r3f scalp heatmap, live spectrogram, PSD-at-window, band heatmap, small-multiples.</div>
+          <div class="arrow">&rarr;</div>
+          <div class="node"><span class="nh">R3 &middot; ICA + ledger</span>Component grid + properties + icalabel, raw/clean overlay, provenance ledger (<code>/history</code>), apply-guard.</div>
+          <div class="arrow">&rarr;</div>
+          <div class="node"><span class="nh">R4 &middot; plugin + export</span><code>eegvis</code> CLI + <code>launch(raw)</code>, export matrix (FIF/CSV/.py/report/BIDS), disk sessions, layout presets.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PAGE 3 · CONNECT ═══════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis</span><span class="mid">01 &mdash; Connect</span><span>p.3 / 10</span></div>
+  <div class="pbody">
+    <div class="screen2">
+      <div class="browser">
+        <wired-card class="frame" elevation="3"></wired-card>
+        <div class="browserwrap">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:8123</span></div>
+          <div class="viewport" style="align-items:stretch; justify-content:center;">
+            <div class="ticker"><span class="live"></span><span>EEGvis</span><span class="rd">server <b>up</b> :8123</span><span class="rd">mne <b>1.7</b></span><span class="rd">sessions <b>0</b></span><span style="margin-left:auto;" class="rd">v0.1</span></div>
+            <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:26px; padding:20px;">
+              <div style="flex:0 0 300px;">
+                <div style="font-size:13px; font-weight:700; margin-bottom:6px;">Open a recording <span class="cx">1</span></div>
+                <div style="height:120px; border:2px dashed #3a3a44; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:9px; color:#8a8a8a;">drop a file &mdash; .edf .bdf .fif .gdf .cnt</div>
+                <div style="font-size:7.5px; color:#6a6a6a; margin-top:5px;">BrainVision / EEGLAB sidecar sets &mdash; multi-file drop <span class="cx">4</span></div>
+                <div class="tile prop" style="margin-top:9px; padding:6px 8px; display:block;">
+                  <div style="font-size:7px; letter-spacing:1px; text-transform:uppercase; color:#8fb6e6;">Recent &mdash; needs disk sessions <span class="cx">5</span></div>
+                  <div class="chanrail" style="width:auto; border:none; padding:2px 0;">
+                    <div class="cr" style="border:none;">sub-04_task-rest.edf &middot; 64ch<span>resume</span></div>
+                    <div class="cr" style="border-color:#24405f;">pilot2.fif &middot; 32ch<span>resume</span></div>
+                  </div>
+                </div>
+              </div>
+              <div style="flex:0 0 320px;">
+                <div class="tile" style="display:block; padding:0;">
+                  <div class="tilehead"><span class="t">from your code</span><span class="hc">copy</span></div>
+                  <div style="padding:8px 10px; font-size:8px; line-height:1.7; color:#b7b7b7;" class="mono">
+                    <div style="color:#6a6a6a;"># notebook / script <span class="cx">2</span></div>
+                    <div>import mne, eegvis</div>
+                    <div>raw = mne.io.read_raw_edf(f)</div>
+                    <div><span style="color:#4fb0ff;">eegvis.launch(raw)</span>&nbsp;&nbsp;<span style="color:#6a6a6a;"># opens this tab</span></div>
+                    <div style="margin-top:6px; color:#6a6a6a;"># or a shell <span class="cx">3</span></div>
+                    <div><span style="color:#4fb0ff;">$ eegvis</span> sub-04.edf</div>
+                  </div>
+                </div>
+                <div style="font-size:7.5px; color:#6a6a6a; margin-top:6px;">on success &rarr; the Terminal, on this session</div>
+              </div>
+            </div>
+            <div class="cmdbar"><span class="prompt">:</span><span class="cin">open ~/data/sub-04.edf</span><span class="hintc">&nbsp;type <b>:open</b>, <b>:attach</b>, <b>:demo</b></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="abcap">browser &middot; the only non-tiled screen &middot; <code>Connect.tsx</code> (was <code>UploadPanel</code>)</div>
+
+      <div class="notes2">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>Built:</b> drag-drop / click upload of one self-contained file to <code>/api/sessions/upload</code>, error line, auto-route on success. <b>This page proposes:</b> the two code entry points, a recent list, multi-file import, a server-status ticker.</p>
+        <div class="notegrid">
+          <div class="n"><span class="lead">Dropzone.</span> <span class="tagword t-now">NOW</span> the working path. Keep; add a parse-summary skeleton (ch / sfreq / duration / montage) before routing so bad files fail here.</div>
+          <div class="n warn"><span class="lead"><code>eegvis.launch(raw)</code>.</span> <span class="tagword t-prop">PROPOSED</span> the headline feature. Python helper posts the in-memory <code>Raw</code> (fif buffer) to <code>/sessions/attach</code>, opens a browser tab. Makes it a real MNE plugin.</div>
+          <div class="n"><span class="lead"><code>eegvis</code> CLI.</span> <span class="tagword t-prop">PROPOSED</span> M5 packaging &mdash; one entry point boots backend+frontend and opens the terminal. Ships in R4.</div>
+          <div class="n"><span class="lead">Multi-file formats.</span> <span class="tagword t-open">OPEN Q</span> BrainVision / EEGLAB need N files. One drop that groups by stem, or a guided "add the sidecar" step?</div>
+          <div class="n"><span class="lead">Recent sessions.</span> <span class="tagword t-prop">PROPOSED</span> blocked on disk persistence (M5). Until then an in-memory list only.</div>
+          <div class="n"><span class="lead">Command bar here.</span> <span class="tagword t-open">OPEN Q</span> is <code>:open</code> / <code>:demo</code> worth wiring on the connect screen, or does the bar only appear once a session exists?</div>
+        </div>
+        <div class="priorart"><b>Prior art</b><br/>MNE's <code>raw.plot()</code> pops a Qt window from a notebook &mdash; local only, no export story. <code>eegvis.launch(raw)</code> is that reflex, but in a shareable browser session with a provenance trail.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PAGE 4 · THE TERMINAL (HERO) ═══════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis</span><span class="mid">02 &mdash; The Terminal (default workspace)</span><span>p.4 / 10</span></div>
+  <div class="pbody">
+    <div class="screen2">
+      <div class="browser">
+        <wired-card class="frame" elevation="3"></wired-card>
+        <div class="browserwrap">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:8123/s/8f2a &mdash; sub-04_task-rest.edf</span></div>
+          <div class="viewport">
+            <div class="ticker">
+              <span class="live"></span><span>sub-04_task-rest.edf</span>
+              <span class="rd">64 ch</span><span class="rd">500 &rarr; <b>250</b> Hz</span><span class="rd">band <b>1&ndash;40</b></span>
+              <span class="rd">ref <b>avg</b></span><span class="rd warn">bad 2 &middot; T7 TP9</span><span class="rd">ICA <b>15</b> / excl 3</span>
+              <span class="rd">t <b>124.500</b>s</span><span style="margin-left:auto;" class="rd">steps <b>6</b></span><span class="rd">unsaved</span>
+              <span class="cxd" style="right:4px; top:2px;">1</span>
+            </div>
+            <div class="wsbar"><span class="ws on">Terminal</span><span class="ws">Clean</span><span class="ws">Report</span><span class="ws">+</span><span style="margin-left:auto; color:#6a6a6a;">layout: docked &middot; sync-lock ON <span class="cx">7</span></span></div>
+            <div style="flex:1; display:flex; min-height:0;">
+              <div class="chanrail">
+                <div class="h">channels <span class="cx">6</span></div>
+                <div class="cr">Fp1<span>&#9679;</span></div><div class="cr">Fp2<span>&#9679;</span></div>
+                <div class="cr bad">T7<span>bad</span></div><div class="cr">C3<span>&#9679;</span></div>
+                <div class="cr">Cz<span>&#9679;</span></div><div class="cr">C4<span>&#9679;</span></div>
+                <div class="cr bad">TP9<span>bad</span></div><div class="cr">Pz<span>&#9679;</span></div>
+                <div class="cr">O1<span>&#9679;</span></div><div class="cr">O2<span>&#9679;</span></div>
+                <div class="cr" style="color:#6a6a6a;">+54 more</div>
+              </div>
+              <div class="grid" style="flex:1; grid-template-columns: 1.9fr 1fr; grid-template-rows: 1.35fr .9fr .8fr;">
+                <div class="tile act" style="grid-row:1 / 3;">
+                  <div class="tilehead"><span class="t">Waveform</span><span>F1</span><span class="hc">&#9633; &#8599;</span></div>
+                  <div class="tilebody"><div class="plot" data-eeg></div><div class="cxd" style="left:46%; top:6px;">2</div></div>
+                </div>
+                <div class="tile">
+                  <div class="tilehead"><span class="t">3D scalp field</span><span>F2</span><span class="hc">rot &#8599;</span></div>
+                  <div class="tilebody"><div class="plot" data-head3d></div><div class="cxd" style="right:5px; top:16px;">3</div></div>
+                </div>
+                <div class="tile">
+                  <div class="tilehead"><span class="t">PSD @ window</span><span>F3</span><span class="hc">log &#8599;</span></div>
+                  <div class="tilebody"><div class="plot" data-psd></div><div class="cxd" style="right:5px; top:16px;">4</div></div>
+                </div>
+                <div class="tile" style="grid-column:1 / 2;">
+                  <div class="tilehead"><span class="t">Spectrogram</span><span>F4</span><span class="hc">Cz &#8599;</span></div>
+                  <div class="tilebody"><div class="plot" data-spectro></div><div class="cxd" style="left:46%; top:6px;">5</div></div>
+                </div>
+                <div class="tile">
+                  <div class="tilehead"><span class="t">Band power</span><span class="hc">&delta;&theta;&alpha;&beta;&gamma;</span></div>
+                  <div class="tilebody"><div class="plot" data-bars></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="cmdbar"><span class="prompt">:</span><span class="cin">notch 60</span><span class="hintc">&nbsp;<b>:hp :lp :notch :resample :ref :ica :goto :export</b> &middot; Tab completes</span><span style="margin-left:auto;" class="cx">8</span></div>
+            <div class="fkeys">
+              <span class="fk"><b>F1</b> wave</span><span class="fk"><b>F2</b> 3D</span><span class="fk"><b>F3</b> psd</span><span class="fk"><b>F4</b> spectro</span><span class="fk"><b>F5</b> ica</span><span class="fk"><b>F6</b> steps</span><span class="fk"><b>F7</b> layout</span><span class="fk"><b>F8</b> export</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="abcap">browser &middot; tiled docking grid, shared time cursor, all panels linked &middot; <code>Terminal.tsx</code></div>
+
+      <div class="notes2">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>Built:</b> the same data every tile shows &mdash; <code>/viewer/window</code>, <code>/spectral/*</code>, <code>/ica/*</code> &mdash; today rendered one panel at a time via step nav. <b>This page proposes:</b> showing them at once in a resizable grid, wired to one cursor.</p>
+        <div class="notegrid">
+          <div class="n"><span class="lead">Status ticker.</span> <span class="tagword t-prop">PROPOSED</span> the live <code>SessionInfo</code> as a single scannable strip; updates optimistically after every mutation. Amber segment = something needs attention.</div>
+          <div class="n warn"><span class="lead">Shared time cursor.</span> <span class="tagword t-prop">PROPOSED</span> the core idea. Hover / <code>:goto</code> sets <code>t</code> in a store; waveform playhead, 3D field, PSD window and spectrogram marker all read it. One <code>/viewer/window</code> + slices drive the rest.</div>
+          <div class="n"><span class="lead">3D scalp field.</span> <span class="tagword t-prop">PROPOSED</span> react-three-fiber head mesh, per-vertex colour interpolated from sensor values at <code>t</code> (or band power). Replaces / augments MNE's static topomap PNG. <span class="tagword t-open">OPEN Q</span> ship a generic head or per-montage?</div>
+          <div class="n"><span class="lead">PSD @ window.</span> <span class="tagword t-prop">PROPOSED</span> Welch on the <i>visible</i> segment, not the whole file &mdash; needs <code>/spectral/psd?start&amp;dur</code>. Recomputes (debounced) as you scrub.</div>
+          <div class="n"><span class="lead">Spectrogram.</span> <span class="tagword t-prop">PROPOSED</span> continuous Morlet/multitaper on one channel, full-recording, cursor marker synced. New <code>/spectral/tfr</code>. Channel picked from the header.</div>
+          <div class="n"><span class="lead">Docking + F-keys + <code>:</code>.</span> <span class="tagword t-open">OPEN Q</span> library: react-mosaic vs dockview vs golden-layout. Persist layout per session? Command grammar frozen now so muscle memory holds.</div>
+        </div>
+        <div class="priorart"><b>Prior art</b><br/>Bloomberg Terminal (linked panels, command line, F-keys), Persyst &amp; Natus review stations (clinical EEG density), TradingView (docked charts). None connect a 3D field + spectra + ICA to one scrub. That link is the product.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PAGE 5 · WAVEFORM PANEL ═══════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis</span><span class="mid">03 &mdash; Waveform panel (F1)</span><span>p.5 / 10</span></div>
+  <div class="pbody">
+    <div class="screen2">
+      <div class="browser">
+        <wired-card class="frame" elevation="3"></wired-card>
+        <div class="browserwrap">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:8123/s/8f2a &mdash; F1 solo</span></div>
+          <div class="viewport">
+            <div class="ticker"><span class="live"></span><span>Waveform &mdash; solo (double-click header to restore grid)</span><span class="rd">t <b>124.500</b>s</span><span style="margin-left:auto;" class="rd">120.0&ndash;130.0 / 1204.0s</span></div>
+            <div style="flex:1; display:flex; min-height:0;">
+              <div class="chanrail" style="width:90px;">
+                <div class="h">montage <span class="cx">3</span></div>
+                <div class="cr">Fp1<span>&#9679;</span></div><div class="cr">Fp2<span>&#9679;</span></div>
+                <div class="cr bad">T7<span>b</span></div><div class="cr">C3<span>&#9679;</span></div>
+                <div class="cr">Cz<span>&#9679;</span></div><div class="cr">C4<span>&#9679;</span></div>
+                <div class="cr bad">TP9<span>b</span></div><div class="cr">Pz<span>&#9679;</span></div>
+                <div class="cr">O1<span>&#9679;</span></div><div class="cr">O2<span>&#9679;</span></div>
+              </div>
+              <div style="flex:1; display:flex; flex-direction:column; min-height:0; padding:5px 7px; gap:5px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="seg"><span>&minus;</span><span class="on">50 &micro;V/div</span><span>+</span></span>
+                  <span class="rowk">window <span class="inp">10s</span></span>
+                  <span class="chip">montage: 10&ndash;20</span>
+                  <span class="chip prop">overlay: clean vs raw <span class="cx">5</span></span>
+                  <span style="margin-left:auto;" class="chip bad">b = mark bad <span class="cx">4</span></span>
+                  <span class="chip">a = annotate <span class="cx">6</span></span>
+                </div>
+                <div class="tile act" style="flex:1;">
+                  <div class="tilehead"><span class="t">64 ch &middot; stacked &middot; WebGL</span><span class="hc">cursor 124.500s &#9679;</span></div>
+                  <div class="tilebody"><div class="plot" data-eeg></div>
+                    <div class="cxd" style="left:44%; top:6px;">1</div>
+                    <div class="cxd" style="left:44%; bottom:4px;">2</div>
+                    <div class="cxd" style="right:6px; top:40%;">7</div>
+                  </div>
+                </div>
+                <div class="tile" style="height:44px;">
+                  <div class="tilehead"><span class="t">minimap &mdash; whole recording</span><span class="hc">drag window <span class="cx">3</span></span></div>
+                  <div class="tilebody"><div class="plot" data-mini></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="cmdbar"><span class="prompt">:</span><span class="cin">goto 124.5s</span><span class="hintc">&nbsp;<b>[ ]</b> nudge cursor &middot; <b>&larr; &rarr;</b> page &middot; <b>&uarr; &darr;</b> scale &middot; click a trace to select</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="abcap">browser &middot; the spine &mdash; its cursor + selection drive every other tile &middot; <code>WaveformPanel.tsx</code> (was <code>ChannelViewer</code>)</div>
+
+      <div class="notes2">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>Built:</b> Plotly <code>scattergl</code> stacked traces at a fixed 100&micro;V offset, prev/next window, numeric window length, &micro;V hover readout, fetch of <code>/viewer/window</code> (start, duration, channels, max_points). <b>This page proposes:</b> WebGL renderer, the cursor, inline bad-marking, annotations, a clean/raw overlay.</p>
+        <div class="notegrid">
+          <div class="n warn"><span class="lead">Renderer.</span> <span class="tagword t-prop">PROPOSED</span> regl/WebGL line layer &mdash; 60fps pan, 256-ch HD-EEG without choking. Plotly stays as a fallback flag through R0.</div>
+          <div class="n"><span class="lead">Time cursor.</span> <span class="tagword t-prop">PROPOSED</span> a vertical line that follows the mouse (or <code>:goto</code>), published to the shared store. This is what makes the 3D field / PSD / spectrogram "live".</div>
+          <div class="n"><span class="lead">Minimap.</span> <span class="tagword t-prop">PROPOSED</span> downsampled whole-recording strip; drag the window box or click to jump. New read-only <code>/viewer/overview</code> (~1 value/s/channel, or RMS).</div>
+          <div class="n"><span class="lead">Mark bad (<code>b</code>).</span> <span class="tagword t-prop">PROPOSED</span> click a trace/name or press <code>b</code> on the selected channel &rarr; <code>POST /preprocessing/bad-channels</code> full set; row + trace go amber instantly, ticker updates.</div>
+          <div class="n"><span class="lead">Clean-vs-raw overlay.</span> <span class="tagword t-prop">PROPOSED</span> after ICA-apply / filtering, ghost the pre-step signal behind the current one so an edit's effect is visible in situ. Needs the original retained (see ledger).</div>
+          <div class="n"><span class="lead">Annotations (<code>a</code>).</span> <span class="tagword t-open">OPEN Q</span> write to <code>raw.annotations</code>; these later seed epoching. Free-text label vs a fixed vocabulary? Drag to set duration.</div>
+        </div>
+        <div class="priorart"><b>Prior art</b><br/><code>mne-qt-browser</code> is the interaction bar: buttery pan, click-to-mark-bad, spacebar annotate. We match it in the browser, add the minimap and the cross-panel cursor it has no concept of.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PAGE 6 · 3D SCALP FIELD ═══════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis</span><span class="mid">04 &mdash; 3D scalp field &amp; topography (F2)</span><span>p.6 / 10</span></div>
+  <div class="pbody">
+    <div class="screen2">
+      <div class="browser">
+        <wired-card class="frame" elevation="3"></wired-card>
+        <div class="browserwrap">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:8123/s/8f2a &mdash; F2</span></div>
+          <div class="viewport">
+            <div class="ticker"><span class="live"></span><span>3D scalp field</span><span class="rd">source <b>instantaneous @ t</b></span><span class="rd">t 124.500s</span><span class="rd">interp <b>spline</b></span><span style="margin-left:auto;" class="rd">montage: standard_1020</span></div>
+            <div style="flex:1; display:flex; min-height:0; padding:6px 8px; gap:6px;">
+              <div class="tile act" style="flex:1.5;">
+                <div class="tilehead"><span class="t">Head mesh &mdash; react-three-fiber</span><span class="hc">drag rotate &middot; scroll zoom</span></div>
+                <div class="tilebody"><div class="plot" data-head3d></div>
+                  <div class="cxd" style="left:8px; top:16px;">1</div>
+                  <div class="cxd" style="right:8px; bottom:8px;">2</div>
+                </div>
+              </div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+                <div class="tile" style="flex:1;">
+                  <div class="tilehead"><span class="t">2D topomap (MNE PNG)</span><span class="hc">fallback <span class="cx">4</span></span></div>
+                  <div class="tilebody"><div class="plot" data-topo></div></div>
+                </div>
+                <div class="tile" style="flex:0 0 auto; padding:6px 8px; display:block;">
+                  <div style="font-size:7px; letter-spacing:1px; text-transform:uppercase; color:#8a8a8a; margin-bottom:4px;">field source <span class="cx">3</span></div>
+                  <div class="seg" style="font-size:6.5px;"><span class="on">@ cursor</span><span>&delta;</span><span>&theta;</span><span>&alpha;</span><span>&beta;</span><span>&gamma;</span></div>
+                  <div class="rowk" style="margin-top:5px;">colour <span class="inp">&plusmn;30&micro;V</span> <span class="chip">RdBu</span> <span class="chip prop">animate playback <span class="cx">5</span></span></div>
+                  <div class="rowk">show <span class="chip on">electrodes</span> <span class="chip">labels</span> <span class="chip">contours</span></div>
+                </div>
+                <div class="tile prop" style="flex:0 0 auto; padding:6px 8px; display:block;">
+                  <div style="font-size:7px; letter-spacing:1px; text-transform:uppercase; color:#8fb6e6;">click a sensor <span class="cx">6</span></div>
+                  <div style="font-size:7.5px; color:#8fb6e6; margin-top:3px;">&rarr; selects it in Waveform + PSD, or toggles bad</div>
+                </div>
+              </div>
+            </div>
+            <div class="cmdbar"><span class="prompt">:</span><span class="cin">field alpha</span><span class="hintc">&nbsp;<b>:field @cursor|&lt;band&gt;</b> &middot; <b>:rotate</b> &middot; <b>:play</b> sweeps the cursor</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="abcap">browser &middot; live scalp interpolation, cursor-driven &middot; <code>ScalpField.tsx</code> + reuses <code>/spectral/band-topomap</code></div>
+
+      <div class="notes2">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>Built:</b> server-rendered topomap PNGs from <code>mne.viz.plot_topomap</code> &mdash; one per ICA component, one per frequency band, fetched on demand. <b>This page proposes:</b> an interactive 3D field in the client, cursor/band-driven, with the PNG kept as a trusted fallback.</p>
+        <div class="notegrid">
+          <div class="n warn"><span class="lead">Head mesh.</span> <span class="tagword t-prop">PROPOSED</span> r3f + a low-poly scalp; per-vertex colour from sensor positions via RBF / spherical-spline interpolation in a shader or a small WASM pass. <span class="tagword t-open">OPEN Q</span> interpolate client-side, or ask the backend for a value grid per <code>t</code>?</div>
+          <div class="n"><span class="lead">Rotate / zoom / camera presets.</span> <span class="tagword t-prop">PROPOSED</span> orbit controls + top/left/right/back buttons. Camera state per workspace.</div>
+          <div class="n"><span class="lead">Field source.</span> <span class="tagword t-prop">PROPOSED</span> toggle: instantaneous voltage @ cursor, or band power (&delta;&hellip;&gamma;) over the window. Band mode reuses <code>/spectral/band-power</code>.</div>
+          <div class="n"><span class="lead">2D fallback.</span> <span class="tagword t-now">NOW</span> keep the MNE PNG topomap in a sub-tile &mdash; it's the reference render and needs zero new code. 3D is the "wow", 2D is the check.</div>
+          <div class="n"><span class="lead">Playback.</span> <span class="tagword t-prop">PROPOSED</span> <code>:play</code> sweeps the cursor at Nx speed; the field animates like an evoked-response movie. Big demo value, needs smooth prefetch of the window.</div>
+          <div class="n"><span class="lead">Sensor picking.</span> <span class="tagword t-prop">PROPOSED</span> raycast to nearest electrode &rarr; select in Waveform/PSD or mark bad. Ties the 3D view into the same selection store as everything else.</div>
+        </div>
+        <div class="priorart"><b>Prior art</b><br/>MNE's <code>plot_topomap</code> / <code>Brain</code> (PyVista) 3D, EEGLAB <code>headplot</code>, Fieldtrip layouts. All are static images or a separate desktop GL window. Putting it in the terminal, cursor-linked, is new.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PAGE 7 · SPECTRAL WORKSPACE ═══════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis</span><span class="mid">05 &mdash; Spectral workspace (F3 / F4)</span><span>p.7 / 10</span></div>
+  <div class="pbody">
+    <div class="screen2">
+      <div class="browser">
+        <wired-card class="frame" elevation="3"></wired-card>
+        <div class="browserwrap">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:8123/s/8f2a &mdash; Spectral</span></div>
+          <div class="viewport">
+            <div class="ticker"><span class="live"></span><span>Spectral</span><span class="rd">method <b>welch</b></span><span class="rd">range <b>1&ndash;45</b> Hz</span><span class="rd">source <b>Raw</b> / window</span><span class="rd">computed <b>4s ago</b></span><span style="margin-left:auto;" class="cx">1</span></div>
+            <div class="grid" style="grid-template-columns: 1.3fr 1fr; grid-template-rows: 1fr 1fr;">
+              <div class="tile act">
+                <div class="tilehead"><span class="t">PSD</span><span class="hc">mean &plusmn; IQR &middot; log <span class="cx">2</span></span></div>
+                <div class="tilebody"><div class="plot" data-psd></div></div>
+              </div>
+              <div class="tile">
+                <div class="tilehead"><span class="t">Band power &mdash; channel &times; band</span><span class="hc">heatmap <span class="cx">3</span></span></div>
+                <div class="tilebody"><div class="plot" data-heat></div></div>
+              </div>
+              <div class="tile">
+                <div class="tilehead"><span class="t">Spectrogram &mdash; Cz</span><span>F4</span><span class="hc">morlet <span class="cx">4</span></span></div>
+                <div class="tilebody"><div class="plot" data-spectro></div><div class="cxd" style="left:46%; top:6px;">6</div></div>
+              </div>
+              <div class="tile prop">
+                <div class="tilehead"><span class="t">Per-channel small multiples</span><span class="hc">64 mini-PSDs <span class="cx">5</span></span></div>
+                <div class="tilebody"><div class="plot" data-smallmult></div></div>
+              </div>
+            </div>
+            <div class="cmdbar"><span class="prompt">:</span><span class="cin">tfr Cz 2 40</span><span class="hintc">&nbsp;<b>:psd 1 45</b> &middot; <b>:band alpha</b> &middot; <b>:tfr &lt;ch&gt; &lt;fmin&gt; &lt;fmax&gt;</b> &middot; <b>:source raw|epochs</b></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="abcap">browser &middot; four linked spectral views &middot; <code>SpectralWorkspace.tsx</code> (was <code>SpectralPanel</code>)</div>
+
+      <div class="notes2">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>Built:</b> a "Compute PSD (1&ndash;45 Hz)" button &rarr; <code>/spectral/psd</code> (Welch) + <code>/spectral/band-power</code>, a Plotly line-per-channel PSD, then band buttons that each fetch a topomap PNG. <b>This page proposes:</b> aggregate PSD, a heatmap, a real spectrogram, small multiples, a source switch.</p>
+        <div class="notegrid">
+          <div class="n"><span class="lead">Compute trigger.</span> <span class="tagword t-now">NOW</span> explicit button (PSD isn't cheap). Keep, plus auto-recompute (debounced) when bound to the cursor window; show "computed Ns ago / reflects step 6".</div>
+          <div class="n"><span class="lead">PSD plot.</span> <span class="tagword t-prop">PROPOSED</span> default to mean &plusmn; IQR band (line-per-channel is noise past ~32 ch); individual channels on hover / from selection.</div>
+          <div class="n"><span class="lead">Band heatmap.</span> <span class="tagword t-prop">PROPOSED</span> <code>/band-power</code> already returns <code>{band: [per-channel]}</code> &mdash; render channel&times;band directly; click a cell &rarr; that band on the 3D field + that channel selected.</div>
+          <div class="n warn"><span class="lead">Spectrogram / TFR.</span> <span class="tagword t-prop">PROPOSED</span> new <code>/spectral/tfr</code> (Morlet or multitaper) on one channel, continuous over the recording, cursor marker synced with the waveform.</div>
+          <div class="n"><span class="lead">Small multiples.</span> <span class="tagword t-prop">PROPOSED</span> a 8&times;8 grid of thumbnail PSDs laid out by montage position &mdash; spot a bad channel or an occipital alpha bump at a glance.</div>
+          <div class="n"><span class="lead">Raw vs Epochs.</span> <span class="tagword t-open">OPEN Q</span> same math, different object. Fold a lightweight epoching control into this screen, or keep a separate Epochs step feeding it?</div>
+        </div>
+        <div class="priorart"><b>Prior art</b><br/>MNE <code>Spectrum.plot</code> / <code>compute_tfr</code>, FieldTrip <code>ft_multiplotER</code>, Persyst spectrogram (clinical trend). Our bet: the montage-shaped small-multiples grid as the default read, topomap/heatmap for the summary.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PAGE 8 · ICA ═══════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis</span><span class="mid">06 &mdash; ICA workspace (F5)</span><span>p.8 / 10</span></div>
+  <div class="pbody">
+    <div class="screen2">
+      <div class="browser">
+        <wired-card class="frame" elevation="3"></wired-card>
+        <div class="browserwrap">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:8123/s/8f2a &mdash; ICA</span></div>
+          <div class="viewport">
+            <div class="ticker"><span class="live"></span><span>ICA</span><span class="rd">method <b>fastica</b></span><span class="rd">n <b>15</b></span><span class="rd warn">excluded <b>3</b> &middot; IC2 IC5 IC10</span><span class="rd">montage <b>ok</b> <span class="cx">1</span></span><span style="margin-left:auto;" class="rd">not yet applied</span></div>
+            <div style="flex:1; display:flex; min-height:0; padding:6px 8px; gap:6px;">
+              <div class="tile act" style="flex:1.6;">
+                <div class="tilehead"><span class="t">Components &mdash; hover loads topomap, click excludes</span><span class="hc"><span class="cx">2</span></span></div>
+                <div class="tilebody" style="padding:5px;">
+                  <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:4px; height:100%;">
+                    <div class="plot stat" data-topo></div><div class="plot stat" data-topo></div>
+                    <div class="plot stat" data-topo style="outline:1.5px solid var(--note);"></div>
+                    <div class="plot stat" data-topo></div><div class="plot stat" data-topo></div>
+                    <div class="plot stat" data-topo style="outline:1.5px solid var(--note);"></div>
+                    <div class="plot stat" data-topo></div><div class="plot stat" data-topo></div>
+                    <div class="plot stat" data-topo></div><div class="plot stat" data-topo></div>
+                    <div class="plot stat" data-topo style="outline:1.5px solid var(--note);"></div>
+                    <div class="plot stat" data-topo></div>
+                  </div>
+                </div>
+              </div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+                <div class="tile prop" style="flex:1;">
+                  <div class="tilehead"><span class="t">IC2 &mdash; properties</span><span class="hc">plot_properties <span class="cx">3</span></span></div>
+                  <div class="tilebody" style="padding:5px; display:flex; flex-direction:column; gap:4px;">
+                    <div style="display:flex; gap:4px; flex:1;"><div class="plot stat" data-topo style="flex:0 0 44%;"></div><div class="plot stat" data-eeg style="flex:1;"></div></div>
+                    <div class="plot stat" data-psd style="flex:1;"></div>
+                    <div style="font-size:7px; color:#8fb6e6;">var 12.4% &middot; <span class="chip prop">ICLabel: eye-blink 0.97 <span class="cx">4</span></span></div>
+                  </div>
+                </div>
+                <div class="tile" style="flex:0 0 auto; padding:6px 8px; display:block;">
+                  <div class="rowk"><span class="btn solid">apply &mdash; remove 3 <span class="cx">5</span></span> <span class="hintc" style="color:#6a6a6a;">reconstructs Raw</span></div>
+                  <div class="rowk"><span class="chip prop">overlay clean vs raw in Waveform <span class="cx">6</span></span></div>
+                </div>
+              </div>
+            </div>
+            <div class="cmdbar"><span class="prompt">:</span><span class="cin">ica 20</span><span class="hintc">&nbsp;<b>:ica &lt;n&gt;</b> fit &middot; <b>:excl 2,5,10</b> &middot; <b>:label</b> run ICLabel &middot; <b>:apply</b></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="abcap">browser &middot; grid + properties + apply, linked to Waveform overlay &middot; <code>ICAWorkspace.tsx</code></div>
+
+      <div class="notes2">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>Built:</b> n_components input + Fit (<code>fastica</code>), a grid showing <code>ICn &middot; variance%</code>, lazy topomap PNG on hover (<code>/ica/components/{i}/topomap</code>), click toggles exclude (<code>/ica/exclude</code> full list), Apply (<code>/ica/apply</code>). Excluded cards go amber. <b>This page proposes:</b> a properties tile, ICLabel, an apply guard, the clean/raw overlay.</p>
+        <div class="notegrid">
+          <div class="n"><span class="lead">Montage gate.</span> <span class="tagword t-now">NOW</span> topomaps are empty with no montage &mdash; today a hint only. Make Fit a hard precondition; ticker shows montage state, links to fix it.</div>
+          <div class="n"><span class="lead">Grid load.</span> <span class="tagword t-open">OPEN Q</span> hover-lazy hides everything until touched. Eager-load all N topomaps after fit (N is small), or keep lazy with "load all"?</div>
+          <div class="n"><span class="lead">Properties tile.</span> <span class="tagword t-prop">PROPOSED</span> click a component &rarr; topomap + IC time course + IC spectrum + variance (MNE <code>plot_properties</code>). New <code>/ica/components/{i}/properties</code>.</div>
+          <div class="n"><span class="lead">ICLabel.</span> <span class="tagword t-prop">PROPOSED</span> wrap <code>mne-icalabel</code> &rarr; class + probability per IC (brain / eye / muscle / heart / line / channel). Badge on each card; user still confirms.</div>
+          <div class="n warn"><span class="lead">Apply is one-way.</span> <span class="tagword t-open">OPEN Q</span> <code>/ica/apply</code> rewrites the Raw irreversibly. Gate behind a Dialog, record as a ledger step so revert re-runs the pipeline from the original.</div>
+          <div class="n"><span class="lead">Overlay compare.</span> <span class="tagword t-prop">PROPOSED</span> before applying, ghost the reconstructed-without-excluded signal behind the current one in the Waveform tile &mdash; see exactly what you're removing.</div>
+        </div>
+        <div class="priorart"><b>Prior art</b><br/>MNE <code>ICA.plot_components</code> + <code>plot_properties</code>; ICLabel (EEGLAB) is the classifier people trust. We fold grid + properties + label + apply-preview into one tile group instead of four matplotlib windows.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PAGE 9 · PIPELINE & EXPORT ═══════════ -->
+<section class="page">
+  <div class="phead"><span>EEGvis</span><span class="mid">07 &mdash; Pipeline ledger &amp; Export (F6 / F8)</span><span>p.9 / 10</span></div>
+  <div class="pbody">
+    <div class="screen2">
+      <div class="browser">
+        <wired-card class="frame" elevation="3"></wired-card>
+        <div class="browserwrap">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:8123/s/8f2a &mdash; Export</span></div>
+          <div class="viewport">
+            <div class="ticker"><span class="live"></span><span>sub-04_task-rest.edf</span><span class="rd">6 steps</span><span class="rd">64 ch &middot; 250 Hz &middot; 1&ndash;40</span><span class="rd">ICA applied</span><span style="margin-left:auto;" class="rd">unsaved <span class="cx">6</span></span></div>
+            <div style="flex:1; display:flex; min-height:0; padding:6px 8px; gap:6px;">
+              <div class="tile act" style="flex:1;">
+                <div class="tilehead"><span class="t">Provenance ledger</span><span>F6</span><span class="hc">each step reversible <span class="cx">1</span></span></div>
+                <div class="tilebody" style="padding:6px 8px;">
+                  <div class="chanrail" style="width:auto; border:none; padding:0; font-size:7.5px;">
+                    <div class="cr" style="border:none;">1 &middot; read_raw_edf<span>&#8617;</span></div>
+                    <div class="cr">2 &middot; filter(l=1, h=40)<span>&#8617;</span></div>
+                    <div class="cr">3 &middot; notch(60)<span>&#8617;</span></div>
+                    <div class="cr">4 &middot; resample(250)<span>&#8617;</span></div>
+                    <div class="cr">5 &middot; set_eeg_reference('average')<span>&#8617;</span></div>
+                    <div class="cr bad">6 &middot; ICA.apply(exclude=[2,5,10])<span>&#8617;</span></div>
+                  </div>
+                  <div class="rowk" style="margin-top:5px;"><span class="chip prop">revert to step&hellip; <span class="cx">2</span></span><span class="chip">diff params</span></div>
+                  <div class="tile" style="margin-top:6px; padding:5px 7px; display:block; background:#0c0c0e;">
+                    <div style="font-size:6.5px; letter-spacing:1px; text-transform:uppercase; color:#8a8a8a;">step 6 &mdash; ICA.apply &middot; selected</div>
+                    <div class="chanrail" style="width:auto; border:none; padding:2px 0; font-size:7px;">
+                      <div class="cr" style="border:none;">exclude<span>[2, 5, 10]</span></div>
+                      <div class="cr">n_components<span>15</span></div>
+                      <div class="cr">method<span>fastica</span></div>
+                      <div class="cr">var removed<span>~31%</span></div>
+                      <div class="cr">ch affected<span>all 64</span></div>
+                    </div>
+                    <div class="rowk" style="margin-top:3px;"><span class="chip">view in Waveform</span><span class="chip prop">re-run from here</span></div>
+                  </div>
+                  <div style="font-size:6.5px; color:#6a6a6a; margin-top:5px;">ledger persists server-side &middot; <code>/history</code> &middot; append-only, revert re-runs from step 1</div>
+                </div>
+              </div>
+              <div style="flex:1.1; display:flex; flex-direction:column; gap:6px;">
+                <div class="tile">
+                  <div class="tilehead"><span class="t">Export matrix <span class="cx">3</span></span></div>
+                  <div class="tilebody" style="padding:6px 8px; display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+                    <span class="btn solid">cleaned Raw &middot; .fif</span>
+                    <span class="btn">Epochs &middot; .fif <span class="cx">4</span></span>
+                    <span class="btn" style="border-style:dashed; border-color:var(--propose); color:#8fb6e6;">band-power .csv</span>
+                    <span class="btn" style="border-style:dashed; border-color:var(--propose); color:#8fb6e6;">pipeline .py <span class="cx">5</span></span>
+                    <span class="btn" style="border-style:dashed; border-color:var(--propose); color:#8fb6e6;">report .pdf</span>
+                    <span class="btn" style="border-style:dashed; border-color:var(--propose); color:#8fb6e6;">BIDS derivatives</span>
+                  </div>
+                </div>
+                <div class="tile prop" style="flex:1;">
+                  <div class="tilehead"><span class="t">pipeline.py &mdash; preview</span><span class="hc">runnable <span class="cx">5</span></span></div>
+                  <div class="tilebody" style="padding:6px 8px; font-size:7px; line-height:1.6; color:#b7b7b7;" class="mono">
+                    <div style="color:#6a6a6a;"># generated by EEGvis &mdash; reproduces this session</div>
+                    <div>raw = mne.io.read_raw_edf('sub-04.edf', preload=True)</div>
+                    <div>raw.filter(1, 40); raw.notch_filter(60)</div>
+                    <div>raw.resample(250)</div>
+                    <div>raw.set_eeg_reference('average')</div>
+                    <div>ica = mne.preprocessing.ICA(n_components=15).fit(raw)</div>
+                    <div>ica.exclude = [2, 5, 10]; ica.apply(raw)</div>
+                  </div>
+                </div>
+                <div class="tile prop" style="flex:0 0 auto; padding:6px 8px; display:block;"><span class="chip prop">save session to disk &mdash; reopen from Connect <span class="cx">6</span></span></div>
+              </div>
+            </div>
+            <div class="cmdbar"><span class="prompt">:</span><span class="cin">export py</span><span class="hintc">&nbsp;<b>:export fif|epochs|csv|py|report|bids</b> &middot; <b>:revert 4</b> &middot; <b>:save</b></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="abcap">browser &middot; the ledger is the product's spine &middot; <code>Ledger.tsx</code> + <code>ExportMatrix.tsx</code></div>
+
+      <div class="notes2">
+        <h3>Notes &amp; decisions</h3>
+        <p class="ncontext"><b>Built:</b> two links hitting <code>/export/raw.fif</code> and <code>/export/epochs.fif</code> that stream the mutated MNE object, with a one-liner that downloads reflect every step so far. <b>This page proposes:</b> the ledger, revert, and five more export targets &mdash; chief among them runnable Python.</p>
+        <div class="notegrid">
+          <div class="n warn"><span class="lead">Provenance ledger.</span> <span class="tagword t-prop">PROPOSED</span> every mutating call appends <code>{op, params, ts}</code> server-side (<code>/history</code>). It's the audit trail, the summary, and the source for the .py export &mdash; one structure, many outputs.</div>
+          <div class="n"><span class="lead">Revert.</span> <span class="tagword t-open">OPEN Q</span> in-place mutation has no undo. Re-run the recorded ledger from the original <code>Raw</code> up to step N (cheap-ish, deterministic) vs snapshot per step (fast, memory-heavy). Lean re-run.</div>
+          <div class="n"><span class="lead">Export matrix.</span> <span class="tagword t-now">NOW</span> FIF works. <span class="tagword t-prop">PROPOSED</span> CSV (band power + exclusion log &mdash; already scoped in the arch doc), report PDF (topomaps + PSD + step list), BIDS derivatives.</div>
+          <div class="n"><span class="lead">Epochs.</span> <span class="tagword t-now">NOW</span> button 404s unless an epoching route ran. Disable until epochs exist; link to the control.</div>
+          <div class="n"><span class="lead">pipeline.py.</span> <span class="tagword t-prop">PROPOSED</span> render the ledger as an <code>mne</code> script. This is what makes EEGvis defensible: a GUI that emits reproducible code, so the terminal is a starting point, not a lock-in.</div>
+          <div class="n"><span class="lead">Persistence.</span> <span class="tagword t-open">OPEN Q</span> M5. Where do sessions live (working dir / XDG data), TTL for abandoned ones, and does <code>:save</code> write the ledger + a fif or a full session bundle?</div>
+        </div>
+        <div class="priorart"><b>Prior art</b><br/>EEGLAB's <code>EEG.history</code> + <code>pop_saveset</code>, MNE-BIDS <code>write_raw_bids</code>, nipype provenance. We converge them: cleaned file + audit trail + runnable script, in one panel.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PAGE 10 · LAYOUT MODEL & IA ═══════════ -->
+<section class="page fill">
+  <div class="phead"><span>EEGvis</span><span class="mid">Layout Model, Workspaces &amp; Flows</span><span>p.10 / 10</span></div>
+  <div class="pbody">
+    <div class="map">
+
+      <div style="display:grid; grid-template-columns: 300px 1fr; gap:34px; align-items:start;">
+        <div>
+          <div class="maprow" style="margin-bottom:6px;">Default dock &mdash; "Terminal" workspace</div>
+          <div class="layoutgrid">
+            <div class="lz full">status ticker &mdash; live SessionInfo</div>
+            <div class="lz span2">channel<br/>rail</div>
+            <div class="lz span2">Waveform (F1) &mdash; cursor source</div>
+            <div class="lz">3D field (F2)</div>
+            <div class="lz">PSD @ window (F3)</div>
+            <div class="lz">Spectrogram (F4)</div>
+            <div class="lz">Band power</div>
+            <div class="lz full">: command bar &nbsp;+&nbsp; F1&ndash;F8 strip</div>
+          </div>
+          <div class="foot" style="margin-top:6px;">drag seams to resize &middot; drag header to re-dock &middot; dbl-click = solo &middot; layout saved per session</div>
+        </div>
+
+        <div>
+          <div class="maprow" style="margin-bottom:6px;">Workspace presets <span class="tagword t-prop">PROPOSED</span> &mdash; same session, different tile set</div>
+          <div class="presets">
+            <div class="preset"><b>Terminal</b>Everything linked. The default read: waveform + 3D + spectra + bands.</div>
+            <div class="preset"><b>Clean</b>Waveform big + ICA grid + ledger. For getting artefacts out fast.</div>
+            <div class="preset"><b>Report</b>3D field + PSD + band heatmap + step list, export-framed for a screenshot / PDF.</div>
+          </div>
+          <div class="maprow" style="margin:14px 0 6px;">Global surfaces</div>
+          <div class="flows">
+            <div class="f"><span class="a">:</span><span><b>Command bar.</b> every mutating route has a verb; Tab-completes; echoes into the ledger.</span></div>
+            <div class="f"><span class="a">F</span><span><b>F1&ndash;F8.</b> focus / solo a panel; Esc restores the dock. Muscle memory across sessions.</span></div>
+            <div class="f"><span class="a">&#8982;</span><span><b>Palette (&#8984;K).</b> fuzzy over commands + channels + components + steps.</span></div>
+            <div class="f"><span class="a">&#9679;</span><span><b>Shared cursor + selection.</b> one store; every tile subscribes. The spine of the whole UI.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mapgroup">
+        <div class="maprow">Cross-panel flows</div>
+        <div class="flows">
+          <div class="f"><span class="a">&rarr;</span><span><b>Connect &rarr; Terminal.</b> upload / <code>launch(raw)</code> / <code>eegvis file</code> &rarr; session &rarr; docked terminal.</span></div>
+          <div class="f"><span class="a">&#9679;</span><span><b>Waveform cursor &rarr; all.</b> hover / <code>:goto</code> sets <code>t</code>; 3D field, PSD, spectrogram redraw at <code>t</code>.</span></div>
+          <div class="f"><span class="a">&#8646;</span><span><b>3D sensor &harr; Waveform / PSD.</b> click an electrode &rarr; select that channel everywhere, or mark it bad.</span></div>
+          <div class="f"><span class="a">&#8646;</span><span><b>Band heatmap cell &rarr; 3D + Waveform.</b> click &rarr; that band on the field, that channel selected.</span></div>
+          <div class="f"><span class="a">&rarr;</span><span><b>ICA apply &rarr; Waveform overlay + ledger.</b> ghosted clean/raw compare; step appended, revertible.</span></div>
+          <div class="f"><span class="a">&rarr;</span><span><b>Ledger &rarr; Export.</b> the step list <i>is</i> the summary, the .py, the report body.</span></div>
+        </div>
+        <div class="foot">Not present: auth &middot; onboarding &middot; multi-user &middot; real-time/streaming (LSL) &middot; source localization / MRI &mdash; explicit v1 non-goals</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script src="bundle.js"></script>
+<script>
+  window.addEventListener('load', () => {
+    const R = window.rough;
+    if (!R) return;
+    const NS = 'http://www.w3.org/2000/svg';
+    const mk = (el) => {
+      const w = el.clientWidth, h = el.clientHeight;
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('width', w); svg.setAttribute('height', h);
+      svg.style.cssText = 'position:absolute;inset:0';
+      el.appendChild(svg);
+      return { svg, rc: R.svg(svg), w, h };
+    };
+    const A = '#4fb0ff', O = '#c0603a', G = '#5a5a62';
+
+    document.querySelectorAll('[data-x]').forEach((el) => {
+      const { svg, rc, w, h } = mk(el);
+      const o = { roughness: 1.4, stroke: G, strokeWidth: 1.1 };
+      svg.appendChild(rc.line(3, 3, w - 3, h - 3, o));
+      svg.appendChild(rc.line(w - 3, 3, 3, h - 3, o));
+    });
+
+    document.querySelectorAll('[data-eeg]').forEach((el) => {
+      const { svg, rc, w, h } = mk(el);
+      const rows = Math.max(4, Math.floor(h / 13));
+      for (let r = 0; r < rows; r++) {
+        const y0 = (h / rows) * (r + 0.5), pts = [];
+        for (let x = 3; x < w - 3; x += 5)
+          pts.push([x, y0 + (Math.sin(x * (0.08 + r * 0.013) + r) + Math.sin(x * 0.3 + r * 2) * 0.5 + (Math.random() - 0.5) * 0.7) * (h / rows) * 0.34]);
+        svg.appendChild(rc.linearPath(pts, { roughness: 0.9, strokeWidth: 0.6, stroke: A }));
+      }
+      // cursor line
+      svg.appendChild(rc.line(w * 0.46, 2, w * 0.46, h - 2, { roughness: 0.6, strokeWidth: 1, stroke: O }));
+    });
+
+    document.querySelectorAll('[data-mini]').forEach((el) => {
+      const { svg, rc, w, h } = mk(el);
+      const pts = [];
+      for (let x = 2; x < w - 2; x += 3) pts.push([x, h / 2 + (Math.sin(x * 0.14) + (Math.random() - 0.5)) * h * 0.3]);
+      svg.appendChild(rc.linearPath(pts, { roughness: 0.8, strokeWidth: 0.5, stroke: '#5a7fa8' }));
+      svg.appendChild(rc.rectangle(w * 0.43, 2, w * 0.12, h - 4, { roughness: 1, strokeWidth: 1, stroke: A }));
+    });
+
+    document.querySelectorAll('[data-psd]').forEach((el) => {
+      const { svg, rc, w, h } = mk(el);
+      const pts = [];
+      for (let x = 5; x < w - 3; x += 4) {
+        const t = x / w;
+        let y = h * (0.15 + 0.68 * t) - Math.exp(-Math.pow((t - 0.32) / 0.06, 2)) * h * 0.26 + (Math.random() - 0.5) * 2.5;
+        pts.push([x, Math.max(3, Math.min(h - 3, y))]);
+      }
+      svg.appendChild(rc.linearPath(pts, { roughness: 1, strokeWidth: 0.8, stroke: A }));
+    });
+
+    document.querySelectorAll('[data-topo]').forEach((el) => {
+      const { svg, rc, w, h } = mk(el);
+      const c = Math.min(w, h) / 2 - 3, cx = w / 2, cy = h / 2;
+      const o = { roughness: 1.3, strokeWidth: 0.8, stroke: '#8a8a8a' };
+      svg.appendChild(rc.circle(cx, cy, c * 2, o));
+      svg.appendChild(rc.linearPath([[cx - 3, cy - c], [cx, cy - c - 4], [cx + 3, cy - c]], o));
+      svg.appendChild(rc.circle(cx - c * 0.33, cy - c * 0.18, c * 0.7, { roughness: 1.6, strokeWidth: 0.6, stroke: O, fill: 'rgba(192,96,58,0.14)', fillStyle: 'solid' }));
+      svg.appendChild(rc.circle(cx + c * 0.38, cy + c * 0.3, c * 0.5, { roughness: 1.6, strokeWidth: 0.6, stroke: A }));
+    });
+
+    // 3D scalp field: 3/4-view head + latitude rings + electrode dots (heatmap) + rotate arc
+    document.querySelectorAll('[data-head3d]').forEach((el) => {
+      const { svg, rc, w, h } = mk(el);
+      const cx = w / 2, cy = h * 0.56, rx = Math.min(w, h) * 0.36, ry = rx * 1.12;
+      const o = { roughness: 1.1, strokeWidth: 1, stroke: '#9a9a9a' };
+      svg.appendChild(rc.ellipse(cx, cy, rx * 2, ry * 2, o));
+      svg.appendChild(rc.ellipse(cx, cy - ry * 0.5, rx * 1.9, ry * 0.9, { roughness: 1.4, strokeWidth: 0.6, stroke: '#5a5a62' }));
+      svg.appendChild(rc.ellipse(cx, cy + ry * 0.05, rx * 2, ry * 0.7, { roughness: 1.4, strokeWidth: 0.5, stroke: '#4a4a52' }));
+      // nose
+      svg.appendChild(rc.linearPath([[cx - rx * 0.16, cy - ry], [cx, cy - ry * 1.16], [cx + rx * 0.16, cy - ry]], o));
+      // electrode dots with heat colour
+      for (let i = 0; i < 22; i++) {
+        const a = (i / 22) * Math.PI * 2, rr = 0.35 + (i % 3) * 0.28;
+        const x = cx + Math.cos(a) * rx * rr, y = cy - ry * 0.12 + Math.sin(a) * ry * rr * 0.8;
+        const v = Math.sin(a * 2 + 1);
+        const col = v > 0.3 ? O : v < -0.3 ? A : '#777';
+        svg.appendChild(rc.circle(x, y, 3.2, { roughness: 0.8, strokeWidth: 0.5, stroke: col, fill: col, fillStyle: 'solid' }));
+      }
+      // rotate hint arc
+      svg.appendChild(rc.arc(cx, cy, rx * 2.5, ry * 2.5, Math.PI * 0.15, Math.PI * 0.55, false, { roughness: 1.6, strokeWidth: 0.7, stroke: A }));
+    });
+
+    // spectrogram: stacked frequency bands with noisy intensity blocks + cursor
+    document.querySelectorAll('[data-spectro]').forEach((el) => {
+      const { svg, rc, w, h } = mk(el);
+      const rows = Math.max(5, Math.floor(h / 8)), cols = Math.max(14, Math.floor(w / 10));
+      const cw = (w - 6) / cols, ch = (h - 6) / rows;
+      for (let r = 0; r < rows; r++) for (let cc = 0; cc < cols; cc++) {
+        const base = Math.exp(-r / (rows * 0.5));
+        const v = Math.min(1, base * (0.5 + Math.random()) + (Math.random() - 0.5) * 0.2);
+        svg.appendChild(rc.rectangle(3 + cc * cw, 3 + r * ch, cw - 0.5, ch - 0.5, {
+          roughness: 0.5, strokeWidth: 0.2, stroke: '#333',
+          fill: v > 0.6 ? 'rgba(192,96,58,0.5)' : v > 0.32 ? 'rgba(79,176,255,0.4)' : 'rgba(79,176,255,0.1)', fillStyle: 'solid'
+        }));
+      }
+      svg.appendChild(rc.line(w * 0.46, 2, w * 0.46, h - 2, { roughness: 0.6, strokeWidth: 1, stroke: O }));
+    });
+
+    document.querySelectorAll('[data-heat]').forEach((el) => {
+      const { svg, rc, w, h } = mk(el);
+      const cols = 5, rows = Math.max(5, Math.floor(h / 10));
+      const cw = (w - 8) / cols, ch = (h - 10) / rows;
+      for (let r = 0; r < rows; r++) for (let cc = 0; cc < cols; cc++) {
+        const v = Math.random();
+        svg.appendChild(rc.rectangle(4 + cc * cw, 6 + r * ch, cw - 1, ch - 1, {
+          roughness: 0.6, strokeWidth: 0.3, stroke: '#444',
+          fill: v > 0.66 ? 'rgba(79,176,255,0.55)' : v > 0.33 ? 'rgba(79,176,255,0.28)' : 'rgba(79,176,255,0.08)', fillStyle: 'solid'
+        }));
+      }
+    });
+
+    document.querySelectorAll('[data-bars]').forEach((el) => {
+      const { svg, rc, w, h } = mk(el);
+      const n = 5, bw = (w - 14) / n;
+      svg.appendChild(rc.line(6, h - 6, w - 4, h - 6, { roughness: 1, strokeWidth: 0.7, stroke: '#777' }));
+      for (let i = 0; i < n; i++) {
+        const bh = (0.3 + Math.random() * 0.6) * (h - 14);
+        svg.appendChild(rc.rectangle(9 + i * bw, h - 6 - bh, bw * 0.6, bh, {
+          roughness: 1, strokeWidth: 0.6, stroke: A, fill: 'rgba(79,176,255,0.25)', fillStyle: 'solid'
+        }));
+      }
+    });
+
+    // small multiples: grid of tiny sparklines
+    document.querySelectorAll('[data-smallmult]').forEach((el) => {
+      const { svg, rc, w, h } = mk(el);
+      const cols = 8, rows = Math.max(4, Math.floor(h / 16));
+      const cw = (w - 4) / cols, chh = (h - 4) / rows;
+      for (let r = 0; r < rows; r++) for (let cc = 0; cc < cols; cc++) {
+        const x0 = 2 + cc * cw, y0 = 2 + r * chh, pts = [];
+        for (let k = 0; k < cw - 3; k += 3) {
+          const t = k / cw;
+          pts.push([x0 + k, y0 + chh * 0.5 + (Math.sin(t * 9 + r + cc) * 0.3 - Math.exp(-Math.pow((t - 0.3) / 0.12, 2)) * 0.4 + 0.2) * chh]);
+        }
+        svg.appendChild(rc.linearPath(pts, { roughness: 0.8, strokeWidth: 0.4, stroke: cc === 2 && r === 1 ? O : A }));
+      }
+    });
+  });
+</script>
+</body>
+</html>

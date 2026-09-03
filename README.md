@@ -1,60 +1,86 @@
 # EEGvis
 
-A web UI over [MNE-Python](https://mne.tools/) for exploring, cleaning, and
-exporting EEG recordings — upload a file, get an interactive multi-channel
-viewer, filtering, ICA artifact removal, and spectral analysis, all backed
-by MNE doing the actual signal processing.
+**MNE-Python, in a web UI** — a dense, point-and-click analysis desk over
+[MNE-Python](https://mne.tools/) for exploring and cleaning EEG recordings. One
+recording per session; every panel — waveform, 3D scalp field, power spectrum,
+band-power heatmap, ICA — is driven by a single shared time cursor. Every
+cleaning step is recorded in a provenance ledger that exports as a runnable
+`pipeline.py`.
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design
-writeup (why FastAPI, why in-memory sessions, why Plotly, milestone plan).
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the original design
+writeup, [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md) for the roadmap, and
+[`docs/COMMANDS.md`](docs/COMMANDS.md) for the controls.
 
-## Status: M0–M4 scaffolded and smoke-tested
+## Status: working prototype
 
-Upload → viewer → filtering/re-reference/montage → ICA (fit/topomap/
-exclude/apply) → PSD + band-power topomaps → export to `.fif` all work
-end-to-end against real MNE objects. Not yet done: disk-persisted sessions,
-packaging (Docker/CLI), multi-file format upload (BrainVision/EEGLAB's
-sidecar files), tests beyond manual smoke-testing.
+Open the app → it lands on a sample recording → scrub the shared cursor across
+the waveform, 3D scalp field, spectrum and band-power heatmap → filter / notch /
+reference / montage / mark-bad / fit-ICA from the **toolbar** → every step lands
+in the Pipeline panel → `revert` to any step → `export py|fif|csv`. Upload your
+own file with **New session**.
+
+- **Compounding systems in place:** `Session` service object, provenance ledger
+  (`replay` / `revert` / `to_python`), one `to_wire()` serializer, a canvas plot
+  substrate (`<LinePlot>` / `<Heatmap>`), a shared mutation helper (`lib/ops.ts`)
+  that keeps the ledger + panels in lockstep, the zustand cursor spine, and a
+  `<Panel>` + `usePanelData()` shell.
+- **Not done yet:** the `eegvis` pip package / `launch(raw)` / CLI, ICLabel
+  auto-suggestions, spectrogram (TFR), windowed PSD, disk-persisted sessions,
+  multi-file upload, OpenAPI→TS codegen, visual-regression tests.
 
 ## Running it
 
-**Backend** (Python 3.11 — MNE's dependency chain isn't yet solid on 3.13+):
+One command (starts FastAPI on `:8123` and Vite on `:5173`):
 
 ```bash
+./dev.sh
+```
+
+Or the two halves separately:
+
+```bash
+# backend — Python 3.11 (MNE's dependency chain isn't solid on 3.13+)
 cd backend
-python3.11 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8123
+python3.11 -m venv venv && ./venv/bin/pip install -r requirements.txt
+./venv/bin/uvicorn app.main:app --reload --port 8123
 ```
-
-**Frontend**:
 
 ```bash
-cd frontend
-npm install
-npm run dev
+# frontend
+cd frontend && npm install && npm run dev
 ```
 
-Open `http://localhost:5173`. The dev server proxies API calls to
-`http://localhost:8123` (hardcoded in `src/api/client.ts` for now — move to
-an env var before deploying anywhere but localhost).
+Open `http://localhost:5173` — it lands on the sample recording automatically.
+The Vite dev server proxies `/api` to the backend, so the frontend only ever
+uses relative URLs (override the target with `EEGVIS_API_URL`). Swagger UI is at
+`http://localhost:8123/docs`.
 
-Interactive API docs (Swagger UI) are auto-generated at
-`http://localhost:8123/docs` once the backend is running.
+### Tests
+
+```bash
+cd backend && ./venv/bin/pip install -r requirements-dev.txt && ./venv/bin/pytest
+cd frontend && npm run build   # tsc + vite build as the type/compile gate
+```
 
 ## Supported file formats
 
-EDF, BDF, FIF, GDF, CNT — anything MNE reads from a single self-contained
-file. BrainVision (`.vhdr`+`.eeg`+`.vmrk`) and EEGLAB (`.set`+`.fdt`) are
-wired into the loader but need a multi-file upload endpoint before they'll
-actually work through the UI (single-file upload only right now).
+EDF, BDF, FIF, GDF, CNT — anything MNE reads from a single self-contained file.
+BrainVision / EEGLAB need a multi-file upload endpoint (not built yet).
 
 ## Project layout
 
 ```
-backend/    FastAPI + MNE-Python API (see backend/app/)
-frontend/   React + TypeScript + Vite + Plotly UI
-docs/       Architecture and design notes
+backend/    FastAPI + MNE-Python API
+  app/services/   session_manager.py (the Session service), ledger.py
+  app/core/       wire.py (serializer + geometry), demo.py (synthetic EEG), MNE wrappers
+  app/api/        thin routers: sessions, viewer, geometry, preprocessing, ica, spectral, provenance, export
+frontend/   React + TypeScript + Vite + Tailwind
+  src/store/         zustand slices (session · cursor · selection · layout · pipeline)
+  src/lib/plot/      canvas plot substrate (LinePlot, Heatmap, scales, useCanvas)
+  src/lib/ops.ts     shared mutation helper (API call → refresh session + ledger + geometry)
+  src/components/panels/   Waveform, ScalpField3D, PSD, BandHeatmap, ICA, Ledger, Minimap, Panel shell
+  src/components/shell/     Terminal (tiling), StatusTicker, Toolbar, FKeyStrip, Connect
+docs/       ARCHITECTURE.md · BUILD_PLAN.md · COMMANDS.md · wireframes/
 ```
 
 ## License

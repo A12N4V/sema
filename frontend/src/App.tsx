@@ -1,59 +1,139 @@
-import { UploadPanel } from "./components/UploadPanel";
-import { InfoPanel } from "./components/InfoPanel";
-import { ChannelViewer } from "./components/ChannelViewer";
-import { PreprocessPanel } from "./components/PreprocessPanel";
-import { ICAPanel } from "./components/ICAPanel";
-import { SpectralPanel } from "./components/SpectralPanel";
-import { ExportPanel } from "./components/ExportPanel";
-import { useSessionStore, type Step } from "./state/sessionStore";
-import "./App.css";
-
-const STEPS: { id: Step; label: string }[] = [
-  { id: "viewer", label: "Viewer" },
-  { id: "preprocess", label: "Preprocess" },
-  { id: "ica", label: "ICA" },
-  { id: "spectral", label: "Spectral" },
-  { id: "export", label: "Export" },
-];
+import { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { Toaster, toast } from "sonner";
+import { Connect } from "./components/shell/Connect";
+import { Terminal } from "./components/shell/Terminal";
+import { StatusTicker } from "./components/shell/StatusTicker";
+import { Toolbar } from "./components/shell/Toolbar";
+import { FKeyStrip } from "./components/shell/FKeyStrip";
+import { Settings } from "./components/shell/Settings";
+import { PANEL_BY_FKEY } from "./components/shell/panelRegistry";
+import { api } from "./api/client";
+import { useStore } from "./store/store";
 
 function App() {
-  const session = useSessionStore((s) => s.session);
-  const step = useSessionStore((s) => s.step);
-  const setStep = useSessionStore((s) => s.setStep);
-  const error = useSessionStore((s) => s.error);
-  const reset = useSessionStore((s) => s.reset);
+  const session = useStore((s) => s.session);
+  const setSession = useStore((s) => s.setSession);
+  const playing = useStore((s) => s.playing);
+  const resolvedTheme = useStore((s) => s.resolvedTheme);
+  const [booting, setBooting] = useState(true);
+  const [wantConnect, setWantConnect] = useState(false);
+  const bootedOnce = useRef(false);
 
-  if (!session) {
-    return (
-      <div className="app app-centered">
-        <UploadPanel />
-      </div>
-    );
-  }
+  // keep "system" theme in sync with the OS
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    const onChange = () => useStore.getState().syncSystemTheme();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  // land straight in the workspace on the sample recording — no upload prompt
+  useEffect(() => {
+    if (bootedOnce.current || session) return;
+    bootedOnce.current = true;
+    api.demo()
+      .then((s) => setSession(s))
+      .catch(() => setWantConnect(true))
+      .finally(() => setBooting(false));
+  }, [session, setSession]);
+
+  // global keybindings — media-style, not a command language
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = document.activeElement;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT")) return;
+      const s = useStore.getState();
+
+      if (/^F[1-8]$/.test(e.key)) {
+        const pid = PANEL_BY_FKEY[e.key];
+        if (pid) { e.preventDefault(); s.focusPanel(s.focusedPanel === pid ? null : pid); }
+        return;
+      }
+      if (e.key === "Escape" && s.focusedPanel) { s.focusPanel(null); return; }
+      if (!s.session) return;
+
+      if (e.key === " ") { e.preventDefault(); s.setPlaying(!s.playing); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); if (e.shiftKey) s.nudgeCursor(1); else s.pageWindow(1); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); if (e.shiftKey) s.nudgeCursor(-1); else s.pageWindow(-1); }
+      else if (e.key === "]") s.setWindow(s.windowStart, Math.min(60, s.windowDuration * 1.5));
+      else if (e.key === "[") s.setWindow(s.windowStart, Math.max(1, s.windowDuration / 1.5));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // session evicted (TTL, or a dev backend restart) — drop back to Connect
+  useEffect(() => {
+    const onLost = () => {
+      if (useStore.getState().session) {
+        useStore.getState().setSession(null);
+        setWantConnect(true);
+        toast.error("Session ended — reconnect to continue");
+      }
+    };
+    window.addEventListener("eegvis:session-lost", onLost);
+    return () => window.removeEventListener("eegvis:session-lost", onLost);
+  }, []);
+
+  // playback sweep
+  useEffect(() => {
+    if (!playing) return;
+    let raf = 0;
+    let last = performance.now();
+    const speed = 1;
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      const s = useStore.getState();
+      const next = s.t + dt * speed;
+      if (next >= (s.session?.duration_seconds ?? 0)) {
+        s.setPlaying(false);
+        return;
+      }
+      s.setCursor(next);
+      if (next > s.windowStart + s.windowDuration * 0.85) {
+        s.setWindow(next - s.windowDuration * 0.5);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [playing]);
 
   return (
-    <div className="app">
-      <aside className="sidebar">
-        <div className="brand" onClick={reset} role="button">
-          EEGvis
+    <div className="flex h-full w-full flex-col overflow-hidden bg-bg">
+      {session ? (
+        <>
+          <StatusTicker onNewSession={() => { setSession(null); setWantConnect(true); }} />
+          <Toolbar />
+          <div className="min-h-0 flex-1">
+            <Terminal />
+          </div>
+          <FKeyStrip />
+        </>
+      ) : booting && !wantConnect ? (
+        <div className="flex h-full flex-col items-center justify-center gap-3 text-fg-dim">
+          <Loader2 className="animate-spin" />
+          <span className="text-sm">Loading sample recording…</span>
         </div>
-        <InfoPanel />
-        <nav>
-          {STEPS.map((s) => (
-            <button key={s.id} className={s.id === step ? "nav-active" : ""} onClick={() => setStep(s.id)}>
-              {s.label}
-            </button>
-          ))}
-        </nav>
-      </aside>
-      <main className="main">
-        {error && <p className="error-text error-banner">{error}</p>}
-        {step === "viewer" && <ChannelViewer />}
-        {step === "preprocess" && <PreprocessPanel />}
-        {step === "ica" && <ICAPanel />}
-        {step === "spectral" && <SpectralPanel />}
-        {step === "export" && <ExportPanel />}
-      </main>
+      ) : (
+        <Connect />
+      )}
+      <Settings />
+      <Toaster
+        theme={resolvedTheme}
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: "var(--color-panel)",
+            border: "1px solid var(--color-seam-bright)",
+            color: "var(--color-fg)",
+            borderRadius: "var(--radius-sm)",
+            fontSize: 12,
+          },
+        }}
+      />
     </div>
   );
 }

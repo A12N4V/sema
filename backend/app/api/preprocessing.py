@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from app.core import filters as filt
 from app.core.loader import raw_summary
 from app.models.schemas import (
     BandpassRequest, NotchRequest, ResampleRequest, BadChannelsRequest,
@@ -21,64 +20,68 @@ def _get_session(session_id: str):
 
 
 def _info(session) -> SessionInfo:
-    return SessionInfo(session_id=session.id, filename=session.filename, **raw_summary(session.raw))
+    with session.lock:
+        return SessionInfo(session_id=session.id, filename=session.filename, **raw_summary(session.raw))
 
 
+# Sync def: filtering / resampling are CPU-bound. The Session methods below
+# already serialize on the per-session lock; running the handler in the
+# threadpool keeps a long filter off the event loop.
 @router.post("/bandpass", response_model=SessionInfo)
-async def bandpass(session_id: str, req: BandpassRequest) -> SessionInfo:
+def bandpass(session_id: str, req: BandpassRequest) -> SessionInfo:
     session = _get_session(session_id)
     try:
-        filt.apply_bandpass(session.raw, req.l_freq, req.h_freq)
+        session.filter(req.l_freq, req.h_freq)
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e))
     return _info(session)
 
 
 @router.post("/notch", response_model=SessionInfo)
-async def notch(session_id: str, req: NotchRequest) -> SessionInfo:
+def notch(session_id: str, req: NotchRequest) -> SessionInfo:
     session = _get_session(session_id)
     try:
-        filt.apply_notch(session.raw, req.freqs)
+        session.notch(req.freqs)
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e))
     return _info(session)
 
 
 @router.post("/resample", response_model=SessionInfo)
-async def resample(session_id: str, req: ResampleRequest) -> SessionInfo:
+def resample(session_id: str, req: ResampleRequest) -> SessionInfo:
     session = _get_session(session_id)
     try:
-        filt.apply_resample(session.raw, req.sfreq)
+        session.resample(req.sfreq)
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e))
     return _info(session)
 
 
 @router.post("/bad-channels", response_model=SessionInfo)
-async def bad_channels(session_id: str, req: BadChannelsRequest) -> SessionInfo:
+def bad_channels(session_id: str, req: BadChannelsRequest) -> SessionInfo:
     session = _get_session(session_id)
     try:
-        filt.set_bad_channels(session.raw, req.bads)
+        session.set_bads(req.bads)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return _info(session)
 
 
 @router.post("/reference", response_model=SessionInfo)
-async def reference(session_id: str, req: ReferenceRequest) -> SessionInfo:
+def reference(session_id: str, req: ReferenceRequest) -> SessionInfo:
     session = _get_session(session_id)
     try:
-        filt.apply_reference(session.raw, req.ref_channels)
+        session.set_reference(req.ref_channels)
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e))
     return _info(session)
 
 
 @router.post("/montage", response_model=SessionInfo)
-async def montage(session_id: str, req: MontageRequest) -> SessionInfo:
+def montage(session_id: str, req: MontageRequest) -> SessionInfo:
     session = _get_session(session_id)
     try:
-        filt.set_montage(session.raw, req.montage_name)
+        session.set_montage(req.montage_name)
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e))
     return _info(session)

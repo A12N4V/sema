@@ -31,13 +31,6 @@ class TraceWindowRequest(BaseModel):
     max_points: int = Field(2000, gt=10, le=20000)
 
 
-class TraceWindowResponse(BaseModel):
-    channels: list[str]
-    sfreq: float
-    time: list[float]
-    traces: dict[str, list[float]]
-
-
 class BandpassRequest(BaseModel):
     l_freq: Optional[float] = None
     h_freq: Optional[float] = None
@@ -76,6 +69,12 @@ class ICAExcludeRequest(BaseModel):
     exclude: list[int]
 
 
+class ICASourcesRequest(BaseModel):
+    start: float = Field(0, ge=0)
+    duration: float = Field(10, gt=0)
+    max_points: int = Field(2000, gt=10, le=20000)
+
+
 class EpochsFromAnnotationsRequest(BaseModel):
     tmin: float = -0.2
     tmax: float = 0.8
@@ -95,4 +94,13 @@ class PSDRequest(BaseModel):
 
 class BandPowerTopomapRequest(BaseModel):
     band: str
+    channels: Optional[list[str]] = None
+
+
+class RevertRequest(BaseModel):
+    to_seq: int = Field(..., ge=0, description="Ledger sequence to roll back to; 0 = pristine")
+
+
+class FieldRequest(BaseModel):
+    t: float = Field(..., ge=0, description="Time in seconds; nearest sample is used")
     channels: Optional[list[str]] = None

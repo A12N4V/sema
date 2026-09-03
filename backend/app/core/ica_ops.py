@@ -60,6 +60,36 @@ def topomap_png_b64(ica: ICA, raw: mne.io.BaseRaw, component_index: int) -> str:
     return base64.b64encode(buf.read()).decode("ascii")
 
 
+def sources_window(ica: ICA, raw: mne.io.BaseRaw, start: float, duration: float,
+                   max_points: int = 2000) -> dict:
+    """IC activation time-courses over a window, in the shared wire shape.
+
+    Channels come back named ``IC 0``, ``IC 1``… (MNE calls them ``ICA000``).
+    Units are arbitrary (ICA sources aren't volts) so no µV scaling.
+    """
+    from app.core import wire
+
+    sources = ica.get_sources(raw)  # RawArray, ch = ICA000, ICA001, ...
+    w = wire.window(sources, start, duration, max_points=max_points)
+    rename = {f"ICA{idx:03d}": f"IC {idx}" for idx in range(ica.n_components_)}
+    w["channels"] = [rename.get(c, c) for c in w["channels"]]
+    w["data"] = {rename.get(k, k): v for k, v in w["data"].items()}
+    return w
+
+
+def component_psd(ica: ICA, raw: mne.io.BaseRaw, index: int,
+                  fmin: float = 1.0, fmax: float = 45.0) -> dict:
+    """Welch PSD of one IC's activation, in dB (matches the Spectrum panel)."""
+    sources = ica.get_sources(raw)
+    spectrum = sources.compute_psd(method="welch", fmin=fmin, fmax=fmax,
+                                   picks=[f"ICA{index:03d}"], verbose="ERROR")
+    # exclude=() so an already-excluded component's own spectrum still returns
+    # (get_sources() marks excluded ICs as bad channels on the sources object)
+    psd, freqs = spectrum.get_data(exclude=(), return_freqs=True)
+    psd_db = (10 * np.log10(psd[0] + np.finfo(float).eps)).tolist()
+    return {"index": index, "freqs": freqs.tolist(), "psd_db": psd_db}
+
+
 def set_exclusions(ica: ICA, exclude: list[int]) -> None:
     ica.exclude = list(sorted(set(exclude)))
 

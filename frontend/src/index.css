@@ -1,8 +1,160 @@
-* {
-  margin: 0;
-  padding: 0;
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+/* ==================================================================
+   Design tokens.  Dark is the default (bare :root); light is applied
+   either by the OS ("system" setting → no data-theme attribute) or by
+   an explicit choice in Settings (data-theme="light" | "dark").
+   ================================================================== */
+@theme {
+  /* --- dark (default) — absolute-black ground --- */
+  --color-bg:          #000000;
+  --color-panel:       #0a0b0e;
+  --color-panel-2:     #14161c;
+  --color-seam:        #23262e;
+  --color-seam-bright: #363a44;
+  --color-fg:          #e8eaee;
+  --color-fg-dim:      #9297a2;
+  --color-fg-faint:    #585d68;
+  --color-accent:      #4c9dff;
+  --color-accent-dim:  #2c5f96;
+  --color-alert:       #e2704c;
+  --color-good:        #4dc07d;
+  --color-warn:        #d7a63f;
+
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+
+  --text-2xs: 10px;
+  --text-xs:  11px;
+  --text-sm:  12px;
+  --text-base: 13px;
+  --text-md:  14px;
 }
 
-html, body, #root {
-  height: 100%;
+/* light palette — shared by the OS-light case and the explicit toggle */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --color-bg:          #f5f6f8;
+    --color-panel:       #ffffff;
+    --color-panel-2:     #eef0f3;
+    --color-seam:        #e1e4e9;
+    --color-seam-bright: #cbd0d8;
+    --color-fg:          #1b1e24;
+    --color-fg-dim:      #596070;
+    --color-fg-faint:    #9298a4;
+    --color-accent:      #2072d8;
+    --color-accent-dim:  #a9c9f2;
+    --color-alert:       #c9552f;
+    --color-good:        #2b9c5c;
+    --color-warn:        #b3841f;
+  }
+}
+:root[data-theme="light"] {
+  --color-bg:          #f5f6f8;
+  --color-panel:       #ffffff;
+  --color-panel-2:     #eef0f3;
+  --color-seam:        #e1e4e9;
+  --color-seam-bright: #cbd0d8;
+  --color-fg:          #1b1e24;
+  --color-fg-dim:      #596070;
+  --color-fg-faint:    #9298a4;
+  --color-accent:      #2072d8;
+  --color-accent-dim:  #a9c9f2;
+  --color-alert:       #c9552f;
+  --color-good:        #2b9c5c;
+  --color-warn:        #b3841f;
+}
+
+/* ---------------------------------------------------------------- base
+   NOTE: these live in @layer base so Tailwind's utility layer (which comes
+   later) still wins — an unlayered `* { padding: 0 }` beats every `px-*`. */
+@layer base {
+  *, ::before, ::after { box-sizing: border-box; border-color: var(--color-seam); }
+
+  html, body, #root { height: 100%; width: 100%; margin: 0; }
+
+  body {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.4;
+    letter-spacing: -0.011em;
+    font-feature-settings: "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+    border-radius: 2px;
+  }
+  button, [role="button"] { cursor: pointer; }
+  button:disabled { cursor: default; }
+
+  input, select, textarea {
+    font: inherit;
+    color: inherit;
+    accent-color: var(--color-accent);
+  }
+}
+
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+  font-feature-settings: "tnum";
+}
+
+/* thin scrollbars that pick up the theme */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-seam-bright);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-fg-faint); background-clip: content-box; }
+
+/* dim-on-stale: panels never blank, they fade */
+.is-stale { opacity: 0.5; transition: opacity 140ms ease; pointer-events: none; }
+.is-ready { opacity: 1; transition: opacity 180ms ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* ------------------------------------------------------------- tile seams */
+.tile-split {
+  background: var(--color-bg);
+  position: relative;
+  z-index: 5;
+  flex: none;
+}
+.tile-split::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--color-seam);
+  transition: background 120ms ease;
+}
+.tile-split:hover::after { background: var(--color-accent); }
+.tile-split[data-axis="x"] { cursor: col-resize; width: 5px; }
+.tile-split[data-axis="y"] { cursor: row-resize; height: 5px; }
+
+/* small popovers / dialogs */
+.pop {
+  background: var(--color-panel);
+  border: 1px solid var(--color-seam-bright);
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.2),
+    0 12px 32px -8px rgb(0 0 0 / 0.35);
 }

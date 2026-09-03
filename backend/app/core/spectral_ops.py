@@ -21,7 +21,8 @@ def compute_psd(raw: mne.io.BaseRaw, fmin: float = 1.0, fmax: float = 45.0,
     the conventional display unit for EEG PSD plots.
     """
     spectrum = raw.compute_psd(method="welch", fmin=fmin, fmax=fmax, picks=picks, verbose="ERROR")
-    psd, freqs = spectrum.get_data(return_freqs=True)  # psd: (n_channels, n_freqs), V^2/Hz
+    # exclude=() so a channel marked bad still appears (the UI wants to see it)
+    psd, freqs = spectrum.get_data(exclude=(), return_freqs=True)  # psd: (n_channels, n_freqs), V^2/Hz
     psd_db = 10 * np.log10(psd * (1e6 ** 2) + np.finfo(float).eps)  # V^2 -> µV^2, then dB
 
     ch_names = spectrum.ch_names
@@ -37,7 +38,7 @@ def compute_band_power(raw: mne.io.BaseRaw, picks: list[str] | None = None) -> d
     fmin = min(b[0] for b in BANDS.values())
     fmax = max(b[1] for b in BANDS.values())
     spectrum = raw.compute_psd(method="welch", fmin=fmin, fmax=fmax, picks=picks, verbose="ERROR")
-    psd, freqs = spectrum.get_data(return_freqs=True)
+    psd, freqs = spectrum.get_data(exclude=(), return_freqs=True)
     ch_names = spectrum.ch_names
 
     band_power: dict[str, list[float]] = {}

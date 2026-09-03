@@ -17,30 +17,33 @@ def _get_session(session_id: str):
 
 
 @router.post("/from-annotations")
-async def from_annotations(session_id: str, req: EpochsFromAnnotationsRequest) -> dict:
+def from_annotations(session_id: str, req: EpochsFromAnnotationsRequest) -> dict:
     session = _get_session(session_id)
-    try:
-        session.epochs = epoching.epochs_from_annotations(
-            session.raw, tmin=req.tmin, tmax=req.tmax, event_id=req.event_id
-        )
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    return epoching.epochs_summary(session.epochs)
+    with session.lock:
+        try:
+            session.epochs = epoching.epochs_from_annotations(
+                session.raw, tmin=req.tmin, tmax=req.tmax, event_id=req.event_id
+            )
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        return epoching.epochs_summary(session.epochs)
 
 
 @router.post("/fixed-length")
-async def fixed_length(session_id: str, req: FixedLengthEpochsRequest) -> dict:
+def fixed_length(session_id: str, req: FixedLengthEpochsRequest) -> dict:
     session = _get_session(session_id)
-    try:
-        session.epochs = epoching.fixed_length_epochs(session.raw, duration=req.duration, overlap=req.overlap)
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    return epoching.epochs_summary(session.epochs)
+    with session.lock:
+        try:
+            session.epochs = epoching.fixed_length_epochs(session.raw, duration=req.duration, overlap=req.overlap)
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        return epoching.epochs_summary(session.epochs)
 
 
 @router.get("")
-async def get_epochs(session_id: str) -> dict:
+def get_epochs(session_id: str) -> dict:
     session = _get_session(session_id)
-    if session.epochs is None:
-        raise HTTPException(status_code=400, detail="No epochs created yet")
-    return epoching.epochs_summary(session.epochs)
+    with session.lock:
+        if session.epochs is None:
+            raise HTTPException(status_code=400, detail="No epochs created yet")
+        return epoching.epochs_summary(session.epochs)
