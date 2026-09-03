@@ -7,6 +7,7 @@ import { SensorsCard } from "./SensorsCard";
 import { TopographyCard } from "./TopographyCard";
 import { Field3DCard } from "./Field3DCard";
 import { ICACard } from "./ICACard";
+import { SourceCard } from "./SourceCard";
 
 export interface CardDef {
   id: string;
@@ -25,6 +26,7 @@ export const CARDS: CardDef[] = [
   { id: "psd", title: "Spectrum", container: "raw", Component: PSD },
   { id: "bandpower", title: "Band power", container: "raw", Component: BandHeatmap },
   { id: "ica", title: "ICA", container: "ica", Component: ICACard, span: { col: 3, row: 2 } },
+  { id: "source", title: "Source", container: "source", Component: SourceCard, span: { col: 3, row: 2 } },
   { id: "minimap", title: "Overview", container: "raw", Component: Minimap },
 ];
 
@@ -48,6 +50,7 @@ export const PRESETS: Record<string, Preset[]> = {
     { name: "Review", cards: ["waveform", "sensors"] },
   ],
   ica: [{ name: "Components", cards: ["ica"] }],
+  source: [{ name: "Brain", cards: ["source"] }],
   epochs: [{ name: "Epochs", cards: [] }],
 };
 

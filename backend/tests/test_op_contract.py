@@ -21,7 +21,12 @@ _PARAMS: dict[str, dict] = {
     "interpolate_bads": {"reset_bads": True},
     "annotate_amplitude": {"peak_uv": 150.0},
     "fit_ica": {"n_components": 6, "method": "fastica"},
+    "compute_source": {"method": "dSPM", "center_t": 4.0},
 }
+
+# Ops the round-trip test skips (covered by a dedicated suite): heavy and/or
+# need a big one-time download.
+_SLOW = {"compute_source"}  # see test_source.py
 
 
 @pytest.fixture
@@ -35,7 +40,7 @@ def test_every_registered_op_has_test_params():
     )
 
 
-@pytest.mark.parametrize("op_id", sorted(operations.REGISTRY))
+@pytest.mark.parametrize("op_id", sorted(set(operations.REGISTRY) - _SLOW))
 def test_op_round_trips_and_emits_valid_pipeline(client: TestClient, op_id: str):
     sid = client.post("/api/sessions/demo").json()["session_id"]
     op = operations.REGISTRY[op_id]
