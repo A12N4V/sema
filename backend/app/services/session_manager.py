@@ -111,7 +111,9 @@ class Session:
     original_raw: Optional[mne.io.BaseRaw] = None      # pristine copy for replay
     ledger: Ledger = field(default_factory=Ledger)
     montage_name: Optional[str] = None
-    _ica_checkpoint: Optional[tuple[int, mne.io.BaseRaw]] = None  # (seq, raw snapshot pre-apply)
+    # seq -> post-apply Raw snapshot. ICA fits aren't cheap or perfectly
+    # reproducible, so an apply_ica step is checkpointed rather than replayed.
+    _ica_checkpoints: dict[int, mne.io.BaseRaw] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.original_raw is None:
@@ -236,37 +238,37 @@ class Session:
         if self.ica is None:
             raise ValueError("No ICA fitted yet")
         before = _brief(self.raw)
-        seq = len(self.ledger) + 1
-        self._ica_checkpoint = (seq, self.raw.copy())
         self.ica.apply(self.raw, verbose="ERROR")
-        self.ledger.append(
+        entry = self.ledger.append(
             "apply_ica", {"exclude": list(self.ica.exclude)},
             label=f"Apply ICA — removed {list(self.ica.exclude)}",
             template="ica.exclude = {exclude}\nica.apply(raw)",
             info_before=before, info_after=_brief(self.raw),
             replayable=False,
         )
+        self._ica_checkpoints[entry.seq] = self.raw.copy()  # snapshot AFTER apply
 
     # --- provenance: replay / revert / codegen ---------------------------
 
     @_synchronized
-    def replay(self, up_to: int) -> mne.io.BaseRaw:
-        """Rebuild the Raw as it stood after ledger entry ``up_to`` (1-based).
+    def replay(self, seq: int) -> mne.io.BaseRaw:
+        """Rebuild the Raw as it stood at ledger entry ``seq`` (0 = pristine).
 
-        Deterministic ops are re-run from the pristine ``original_raw``. If an
-        ICA-apply checkpoint sits within range, replay resumes from that
-        snapshot instead (ICA fits aren't cheap or perfectly reproducible).
+        Walks the branch path root→seq. Deterministic ops re-run from the
+        pristine ``original_raw``; if an ICA-apply checkpoint sits on the path,
+        replay resumes from that (post-apply) snapshot instead.
         """
-        entries = self.ledger.entries[:up_to]
-        start_idx = 0
+        path = self.ledger.path_to(seq)
         raw = self.original_raw.copy()
-        if self._ica_checkpoint is not None:
-            ckpt_seq, ckpt_raw = self._ica_checkpoint
-            if up_to >= ckpt_seq:
-                raw = ckpt_raw.copy()
-                start_idx = ckpt_seq  # entries before & including the checkpoint are baked in
-
-        for entry in entries[start_idx:]:
+        skip_through = 0
+        for entry in path:
+            snap = self._ica_checkpoints.get(entry.seq)
+            if snap is not None and entry.seq > skip_through:
+                raw = snap.copy()
+                skip_through = entry.seq
+        for entry in path:
+            if entry.seq <= skip_through:
+                continue
             fn = _REPLAY_DISPATCH.get(entry.op)
             if fn is not None:
                 fn(raw, entry.params)
@@ -274,18 +276,16 @@ class Session:
 
     @_synchronized
     def revert(self, to_seq: int) -> None:
-        """Roll the session back to the state after entry ``to_seq`` (0 = pristine)."""
+        """Check out ledger entry ``to_seq`` (0 = pristine). Nothing is deleted —
+        applying an op from here forks a new branch off ``to_seq``."""
         self.raw = self.replay(to_seq)
-        self.ledger.truncate(to_seq)
-        if self._ica_checkpoint is not None and to_seq < self._ica_checkpoint[0]:
-            self._ica_checkpoint = None
-        # drop the fitted ICA if its fit step was rolled past
-        if not any(e.op == "fit_ica" for e in self.ledger.entries):
+        self.ledger.set_head(to_seq)
+        path = self.ledger.current_path()
+        path_ops = {e.op for e in path}
+        # re-derive state that isn't carried on the Raw
+        if "fit_ica" not in path_ops:
             self.ica = None
-        # re-derive state that isn't carried on the Raw: the montage *name*
-        # (the Raw keeps positions, not the label) and any Epochs, which were
-        # sliced from a Raw state this revert has just discarded.
-        montage_steps = [e for e in self.ledger.entries if e.op == "set_montage"]
+        montage_steps = [e for e in path if e.op == "set_montage"]
         self.montage_name = montage_steps[-1].params["montage_name"] if montage_steps else None
         self.epochs = None
 
@@ -302,7 +302,7 @@ class Session:
             "raw.load_data()",
             "",
         ]
-        body = [entry.render() for entry in self.ledger.entries]
+        body = [entry.render() for entry in self.ledger.current_path()]
         if not body:
             body = ["# (no operations recorded yet)"]
         tail = ["", "raw.save('eegvis_cleaned_raw.fif', overwrite=True)"]

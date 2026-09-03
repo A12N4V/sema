@@ -57,7 +57,7 @@ def export_summary_csv(session_id: str):
         w.writerow([])
         w.writerow(["## pipeline"])
         w.writerow(["seq", "op", "label"])
-        for e in session.ledger.entries:
+        for e in session.ledger.current_path():
             w.writerow([e.seq, e.op, e.label])
         w.writerow([])
 

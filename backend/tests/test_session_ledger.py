@@ -37,20 +37,39 @@ def test_replay_from_origin_is_deterministic(session: Session):
     assert np.allclose(live, replayed, atol=1e-12)
 
 
-def test_revert_rolls_back_state(session: Session):
+def test_revert_moves_head_without_deleting(session: Session):
     session.filter(1.0, 40.0)
     session.notch([60.0])
     session.set_bads(["T7"])
-    assert len(session.ledger) == 3
+    assert len(session.ledger) == 3 and session.ledger.head == 3
 
-    session.revert(1)  # keep only the band-pass
-    assert len(session.ledger) == 1
+    session.revert(1)  # check out the band-pass step
+    assert len(session.ledger) == 3          # nothing deleted
+    assert session.ledger.head == 1
+    assert [e.op for e in session.ledger.current_path()] == ["filter"]
     assert session.raw.info["bads"] == []
     assert session.raw.info["highpass"] == 1.0
 
     session.revert(0)  # pristine
-    assert len(session.ledger) == 0
+    assert session.ledger.head == 0
+    assert session.ledger.current_path() == []
     assert session.raw.info["highpass"] == make_demo_raw().info["highpass"]
+
+
+def test_revert_then_run_forks_a_branch(session: Session):
+    session.filter(1.0, 40.0)          # seq 1
+    session.notch([60.0])              # seq 2, parent 1
+    session.revert(1)                  # head -> 1
+    session.resample(128.0)            # seq 3, parent 1  (a fork)
+
+    assert session.ledger.entries[2].parent == 1
+    assert set(session.ledger.leaves()) == {2, 3}
+    assert [e.op for e in session.ledger.current_path()] == ["filter", "resample"]
+    assert session.raw.info["sfreq"] == 128.0
+
+    session.revert(2)                  # back onto the other branch
+    assert [e.op for e in session.ledger.current_path()] == ["filter", "notch"]
+    assert session.raw.info["sfreq"] == make_demo_raw().info["sfreq"]
 
 
 def test_revert_past_montage_clears_montage_name(session: Session):
