@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { StateCreator } from "zustand";
-import { api, type SessionInfo, type LedgerEntry, type MontageLayout } from "../api/client";
+import { api, type SessionInfo, type LedgerEntry, type MontageLayout, type ContainerRef } from "../api/client";
 import { applyTheme, readTheme, resolved, type Theme } from "../lib/theme";
 
 /* ------------------------------------------------------------------ session */
@@ -24,9 +24,12 @@ const sessionSlice: StateCreator<Store, [], [], SessionSlice> = (set, get) => ({
         windowDuration: 10,
         t: 5,
         history: [],
+        activeContainerId: "raw",
+        selectedStep: null,
       });
       void get().loadLayout();
       void get().refreshHistory();
+      void get().refreshGraph();
     }
   },
   patchSession: (session) => set({ session }),
@@ -49,12 +52,14 @@ interface CursorSlice {
   windowStart: number;
   windowDuration: number;
   playing: boolean;
+  speed: number;
   setCursor: (t: number) => void;
   seekTo: (t: number) => void;
   setWindow: (start: number, duration?: number) => void;
   nudgeCursor: (dt: number) => void;
   pageWindow: (dir: -1 | 1) => void;
   setPlaying: (p: boolean) => void;
+  setSpeed: (s: number) => void;
 }
 
 const cursorSlice: StateCreator<Store, [], [], CursorSlice> = (set, get) => ({
@@ -62,6 +67,7 @@ const cursorSlice: StateCreator<Store, [], [], CursorSlice> = (set, get) => ({
   windowStart: 0,
   windowDuration: 10,
   playing: false,
+  speed: 1,
   setCursor: (t) => {
     const dur = get().session?.duration_seconds ?? Infinity;
     set({ t: Math.max(0, Math.min(t, dur)) });
@@ -84,6 +90,7 @@ const cursorSlice: StateCreator<Store, [], [], CursorSlice> = (set, get) => ({
     get().setWindow(windowStart + dir * windowDuration * 0.9);
   },
   setPlaying: (playing) => set({ playing }),
+  setSpeed: (speed) => set({ speed }),
 });
 
 /* ---------------------------------------------------------------- selection */
@@ -91,11 +98,13 @@ interface SelectionSlice {
   selectedChannels: string[];
   focusChannel: string | null;
   component: number | null;
+  selectedStep: number | null;
   band: string;
   toggleChannel: (ch: string) => void;
   setSelectedChannels: (c: string[]) => void;
   setFocusChannel: (c: string | null) => void;
   setComponent: (i: number | null) => void;
+  setSelectedStep: (seq: number | null) => void;
   setBand: (b: string) => void;
 }
 
@@ -103,14 +112,16 @@ const selectionSlice: StateCreator<Store, [], [], SelectionSlice> = (set, get) =
   selectedChannels: [],
   focusChannel: null,
   component: null,
+  selectedStep: null,
   band: "alpha",
   toggleChannel: (ch) => {
     const cur = get().selectedChannels;
     set({ selectedChannels: cur.includes(ch) ? cur.filter((c) => c !== ch) : [...cur, ch] });
   },
   setSelectedChannels: (selectedChannels) => set({ selectedChannels }),
-  setFocusChannel: (focusChannel) => set({ focusChannel }),
+  setFocusChannel: (focusChannel) => set({ focusChannel, selectedStep: null }),
   setComponent: (component) => set({ component }),
+  setSelectedStep: (selectedStep) => set({ selectedStep, focusChannel: null }),
   setBand: (band) => set({ band }),
 });
 
@@ -133,6 +144,8 @@ const layoutSlice: StateCreator<Store, [], [], LayoutSlice> = (set) => ({
 /* ----------------------------------------------------------------- pipeline */
 interface PipelineSlice {
   history: LedgerEntry[];
+  ledgerHead: number;
+  leaves: number[];
   montageName: string | null;
   hasIca: boolean;
   refreshHistory: () => Promise<void>;
@@ -140,6 +153,8 @@ interface PipelineSlice {
 
 const pipelineSlice: StateCreator<Store, [], [], PipelineSlice> = (set, get) => ({
   history: [],
+  ledgerHead: 0,
+  leaves: [],
   montageName: null,
   hasIca: false,
   refreshHistory: async () => {
@@ -147,11 +162,48 @@ const pipelineSlice: StateCreator<Store, [], [], PipelineSlice> = (set, get) => 
     if (!s) return;
     try {
       const h = await api.history(s.session_id);
-      set({ history: h.entries, montageName: h.montage_name, hasIca: h.has_ica });
+      set({
+        history: h.entries,
+        ledgerHead: h.head ?? 0,
+        leaves: h.leaves ?? [],
+        montageName: h.montage_name,
+        hasIca: h.has_ica,
+      });
     } catch {
       /* ignore */
     }
   },
+});
+
+/* ------------------------------------------------------------------- graph */
+interface GraphSlice {
+  containerGraph: ContainerRef[];
+  capabilities: string[];
+  activeContainerId: string;
+  refreshGraph: () => Promise<void>;
+  setActiveContainer: (id: string) => void;
+}
+
+const graphSlice: StateCreator<Store, [], [], GraphSlice> = (set, get) => ({
+  containerGraph: [],
+  capabilities: [],
+  activeContainerId: "raw",
+  refreshGraph: async () => {
+    const s = get().session;
+    if (!s) return;
+    try {
+      const g = await api.graph(s.session_id);
+      const active = get().activeContainerId;
+      set({
+        containerGraph: g.graph,
+        capabilities: g.capabilities,
+        activeContainerId: g.graph.some((n) => n.id === active) ? active : "raw",
+      });
+    } catch {
+      /* ignore */
+    }
+  },
+  setActiveContainer: (activeContainerId) => set({ activeContainerId }),
 });
 
 /* ------------------------------------------------------------------ settings */
@@ -191,7 +243,8 @@ const settingsSlice: StateCreator<Store, [], [], SettingsSlice> = (set, get) => 
 };
 
 /* -------------------------------------------------------------------- store */
-export type Store = SessionSlice & CursorSlice & SelectionSlice & LayoutSlice & PipelineSlice & SettingsSlice;
+export type Store = SessionSlice & CursorSlice & SelectionSlice & LayoutSlice &
+  PipelineSlice & GraphSlice & SettingsSlice;
 
 export const useStore = create<Store>()((...a) => ({
   ...sessionSlice(...a),
@@ -199,6 +252,7 @@ export const useStore = create<Store>()((...a) => ({
   ...selectionSlice(...a),
   ...layoutSlice(...a),
   ...pipelineSlice(...a),
+  ...graphSlice(...a),
   ...settingsSlice(...a),
 }));
 

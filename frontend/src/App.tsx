@@ -2,24 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import { Connect } from "./components/shell/Connect";
-import { Terminal } from "./components/shell/Terminal";
-import { StatusTicker } from "./components/shell/StatusTicker";
-import { Toolbar } from "./components/shell/Toolbar";
-import { FKeyStrip } from "./components/shell/FKeyStrip";
+import { Workspace } from "./components/shell/Workspace";
 import { Settings } from "./components/shell/Settings";
 import { CommandPalette } from "./components/ops/CommandPalette";
-import { PANEL_BY_FKEY } from "./components/shell/panelRegistry";
 import { api } from "./api/client";
 import { useStore } from "./store/store";
+import { useRoute, navigate } from "./lib/router";
 
 function App() {
+  const route = useRoute();
   const session = useStore((s) => s.session);
   const setSession = useStore((s) => s.setSession);
   const playing = useStore((s) => s.playing);
   const resolvedTheme = useStore((s) => s.resolvedTheme);
-  const [booting, setBooting] = useState(true);
-  const [wantConnect, setWantConnect] = useState(false);
-  const bootedOnce = useRef(false);
+  const [loadingSession, setLoadingSession] = useState(false);
+  const attempted = useRef<string | null>(null);
 
   // keep "system" theme in sync with the OS
   useEffect(() => {
@@ -29,37 +26,30 @@ function App() {
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  // land straight in the workspace on the sample recording — no upload prompt
+  // route → session: /s/:id with no matching session in the store → fetch it
   useEffect(() => {
-    if (bootedOnce.current || session) return;
-    bootedOnce.current = true;
-    api.demo()
+    if (route.name !== "workspace") return;
+    if (session?.session_id === route.sessionId) return;
+    if (attempted.current === route.sessionId) return;
+    attempted.current = route.sessionId;
+    setLoadingSession(true);
+    api.getSession(route.sessionId)
       .then((s) => setSession(s))
-      .catch(() => setWantConnect(true))
-      .finally(() => setBooting(false));
-  }, [session, setSession]);
+      .catch(() => { toast.error("Session not found — start a new one"); navigate("/connect", true); })
+      .finally(() => setLoadingSession(false));
+  }, [route, session, setSession]);
 
-  // global keybindings — media-style, not a command language
+  // global keybindings
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const s = useStore.getState();
-
-      // ⌘K / Ctrl+K — command palette (works even from a focused input)
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         if (s.session) s.setPaletteOpen(!s.paletteOpen);
         return;
       }
-
       const el = document.activeElement;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT")) return;
-
-      if (/^F[1-8]$/.test(e.key)) {
-        const pid = PANEL_BY_FKEY[e.key];
-        if (pid) { e.preventDefault(); s.focusPanel(s.focusedPanel === pid ? null : pid); }
-        return;
-      }
-      if (e.key === "Escape" && s.focusedPanel) { s.focusPanel(null); return; }
       if (!s.session) return;
 
       if (e.key === " ") { e.preventDefault(); s.setPlaying(!s.playing); }
@@ -72,12 +62,13 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // session evicted (TTL, or a dev backend restart) — drop back to Connect
+  // session evicted (TTL / dev restart) — back to Connect
   useEffect(() => {
     const onLost = () => {
       if (useStore.getState().session) {
         useStore.getState().setSession(null);
-        setWantConnect(true);
+        attempted.current = null;
+        navigate("/connect", true);
         toast.error("Session ended — reconnect to continue");
       }
     };
@@ -90,41 +81,31 @@ function App() {
     if (!playing) return;
     let raf = 0;
     let last = performance.now();
-    const speed = 1;
     const tick = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
       const s = useStore.getState();
-      const next = s.t + dt * speed;
-      if (next >= (s.session?.duration_seconds ?? 0)) {
-        s.setPlaying(false);
-        return;
-      }
+      const next = s.t + dt * s.speed;
+      if (next >= (s.session?.duration_seconds ?? 0)) { s.setPlaying(false); return; }
       s.setCursor(next);
-      if (next > s.windowStart + s.windowDuration * 0.85) {
-        s.setWindow(next - s.windowDuration * 0.5);
-      }
+      if (next > s.windowStart + s.windowDuration * 0.85) s.setWindow(next - s.windowDuration * 0.5);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [playing]);
 
+  const newSession = () => { setSession(null); attempted.current = null; navigate("/connect"); };
+  const inWorkspace = route.name === "workspace" && session?.session_id === route.sessionId;
+
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-bg">
-      {session ? (
-        <>
-          <StatusTicker onNewSession={() => { setSession(null); setWantConnect(true); }} />
-          <Toolbar />
-          <div className="min-h-0 flex-1">
-            <Terminal />
-          </div>
-          <FKeyStrip />
-        </>
-      ) : booting && !wantConnect ? (
+      {inWorkspace ? (
+        <Workspace onNewSession={newSession} />
+      ) : loadingSession ? (
         <div className="flex h-full flex-col items-center justify-center gap-3 text-fg-dim">
           <Loader2 className="animate-spin" />
-          <span className="text-sm">Loading sample recording…</span>
+          <span className="text-sm">Loading session…</span>
         </div>
       ) : (
         <Connect />
