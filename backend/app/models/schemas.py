@@ -22,6 +22,7 @@ class SessionInfo(BaseModel):
     has_montage: bool
     annotations: list[dict]
     meas_date: Optional[str]
+    modalities: dict = Field(default_factory=dict)
 
 
 class TraceWindowRequest(BaseModel):

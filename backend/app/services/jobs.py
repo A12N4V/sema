@@ -40,6 +40,7 @@ class Job:
     progress: float = 0.0     # 0..1; coarse for now (MNE gives few clean hooks)
     detail: str = ""
     error: str | None = None
+    result: dict[str, Any] = field(default_factory=dict)  # e.g. {"session_id": ...} for a dataset fetch
     created_at: float = field(default_factory=time.time)
     started_at: float | None = None
     finished_at: float | None = None
@@ -53,6 +54,7 @@ class Job:
             "progress": round(self.progress, 3),
             "detail": self.detail,
             "error": self.error,
+            "result": self.result,
             "created_at": self.created_at,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
