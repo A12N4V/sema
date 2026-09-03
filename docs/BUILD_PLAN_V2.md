@@ -13,6 +13,31 @@ Legend: 🔩 compounding system · `S/M/L/XL` effort · ⚠ has an unknown to re
 
 ---
 
+## Progress
+
+Branch `v2-foundations` (additive — v1 shell and its per-op routes still work):
+
+- ✅ **P0.1** container graph — `core/containers.py`: `ContainerKind`, `ContainerRef`,
+  `container_graph(session)`, `session_capabilities(session)`. `GET /api/sessions/{id}/graph`.
+  (Still derived from what's on the Session; the multi-node DAG is P4.)
+- ✅ **P0.2** operation registry — `core/operations/`: `Operation` + `register()`;
+  Raw-stage ops registered (filter, notch, resample, montage, reference, bads, fit_ica) +
+  new `interpolate_bads`. `GET /api/ops[?input=kind]`, `POST /api/sessions/{id}/ops`.
+- ✅ **P0.3** job runner — `services/jobs.py` (2-thread pool, `Job` states);
+  `long_running` ops return `202 {job_id}`; `GET /api/jobs/{id}`, `GET /api/sessions/{id}/jobs`.
+- ✅ **P0.7 seed** — capability tokens + gate in `POST /ops` (422 with "needs: …").
+- ✅ **P0.9 seed** — `components/ops/ParamForm.tsx` (renders any Pydantic JSON schema) +
+  `CommandPalette.tsx` (⌘K, ops grouped by stage, capability-gated, job-aware).
+- ✅ **P2 first item** — `interpolate_bads` (closes the mark-bad loop), in the palette and
+  the Bad-channels toolbar popover.
+
+Tests: backend 24 green (`test_operations.py`, `test_jobs.py` new). Verified in the running app.
+
+**Next:** P0.4 (card registry + one renderer) → P0.5 (server render service) → then the P1
+shell assembles the rail + canvas + inspector around what's above.
+
+---
+
 ## The core idea
 
 > **One registry entry per MNE operation. One card definition per MNE plot. One
