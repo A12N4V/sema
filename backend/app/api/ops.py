@@ -21,6 +21,7 @@ from app.core import operations
 from app.core.containers import ContainerKind, container_graph, session_capabilities
 from app.core.loader import raw_summary
 from app.models.schemas import OpRequest
+from app.services import persistence
 from app.services.jobs import jobs
 from app.services.session_manager import sessions
 
@@ -81,6 +82,7 @@ def run_op(session_id: str, body: OpRequest, response: Response) -> dict:
         def _work(job) -> None:
             with session.lock:
                 op.run(session, params)
+            persistence.save_async(session)
 
         job = jobs.submit(f"op:{op.id}", session_id, _work, detail=op.label)
         response.status_code = 202
@@ -92,6 +94,7 @@ def run_op(session_id: str, body: OpRequest, response: Response) -> dict:
     except (ValueError, RuntimeError) as e:
         raise HTTPException(status_code=422, detail=str(e))
 
+    persistence.save_async(session)
     return {"op_id": op.id, **_result(session)}
 
 

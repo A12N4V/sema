@@ -331,6 +331,16 @@ class SessionManager:
         with self._lock:
             session = self._sessions.get(session_id)
         if session is None:
+            # not resident — try to rehydrate from an on-disk bundle (P0.11)
+            from app.services import persistence
+            if persistence.exists(session_id):
+                try:
+                    session = persistence.load(session_id)
+                    with self._lock:
+                        self._sessions[session_id] = session
+                except Exception:
+                    session = None
+        if session is None:
             raise KeyError(f"No session with id {session_id!r} (expired or never existed)")
         session.touch()
         return session

@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.core.loader import raw_summary
 from app.models.schemas import RevertRequest, SessionInfo
+from app.services import persistence
 from app.services.session_manager import sessions
 
 router = APIRouter(prefix="/api/sessions/{session_id}", tags=["provenance"])
@@ -43,5 +44,6 @@ def revert(session_id: str, req: RevertRequest) -> SessionInfo:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Revert failed: {e}")
+    persistence.save_async(session)
     with session.lock:
         return SessionInfo(session_id=session.id, filename=session.filename, **raw_summary(session.raw))
