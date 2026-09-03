@@ -1,74 +1,14 @@
 import { useMemo, useState } from "react";
+import {
+  fromInput,
+  humanize,
+  resolveKind,
+  toInput,
+  type JsonSchema,
+} from "../../lib/schemaForm";
 
-/* ------------------------------------------------------------------ schema */
-/** The subset of JSON Schema (Pydantic v2 `model_json_schema()`) we render. */
-interface PropSchema {
-  type?: string;
-  anyOf?: PropSchema[];
-  items?: PropSchema;
-  enum?: string[];
-  default?: unknown;
-  description?: string;
-  title?: string;
-}
-export interface JsonSchema {
-  properties?: Record<string, PropSchema>;
-  required?: string[];
-}
+export type { JsonSchema } from "../../lib/schemaForm";
 
-type Kind = "number" | "string" | "bool" | "num-list" | "str-list" | "str-or-list" | "json";
-
-function resolve(p: PropSchema): { kind: Kind; optional: boolean } {
-  if (p.anyOf && p.anyOf.length) {
-    const optional = p.anyOf.some((x) => x.type === "null");
-    const nn = p.anyOf.filter((x) => x.type !== "null");
-    if (nn.length === 1) return { kind: resolve(nn[0]).kind, optional };
-    const types = nn.map((x) => x.type);
-    if (types.includes("string") && types.includes("array")) return { kind: "str-or-list", optional };
-    if (types.includes("number") || types.includes("integer")) return { kind: "number", optional };
-    return { kind: "json", optional };
-  }
-  if (p.enum) return { kind: "string", optional: false };
-  switch (p.type) {
-    case "number":
-    case "integer":
-      return { kind: "number", optional: false };
-    case "boolean":
-      return { kind: "bool", optional: false };
-    case "string":
-      return { kind: "string", optional: false };
-    case "array":
-      return { kind: p.items?.type === "string" ? "str-list" : "num-list", optional: false };
-    default:
-      return { kind: "json", optional: false };
-  }
-}
-
-const humanize = (k: string) => k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-
-function toInput(kind: Kind, v: unknown): string | boolean {
-  if (kind === "bool") return Boolean(v);
-  if (v == null) return "";
-  if (Array.isArray(v)) return v.join(", ");
-  if (typeof v === "object") return JSON.stringify(v);
-  return String(v);
-}
-
-function fromInput(kind: Kind, raw: string | boolean, optional: boolean): unknown {
-  if (kind === "bool") return Boolean(raw);
-  const s = String(raw).trim();
-  if (s === "") return optional ? null : undefined;
-  switch (kind) {
-    case "number": return Number(s);
-    case "num-list": return s.split(",").map((x) => Number(x.trim())).filter((n) => !Number.isNaN(n));
-    case "str-list": return s.split(",").map((x) => x.trim()).filter(Boolean);
-    case "str-or-list": return s.includes(",") ? s.split(",").map((x) => x.trim()).filter(Boolean) : s;
-    case "json": try { return JSON.parse(s); } catch { return s; }
-    default: return s;
-  }
-}
-
-/* -------------------------------------------------------------------- form */
 const field =
   "w-full rounded-xs border border-seam bg-bg px-2 py-1.5 text-sm text-fg outline-none transition-colors focus:border-accent";
 
@@ -86,7 +26,7 @@ export function ParamForm({
   const fields = useMemo(
     () =>
       Object.entries(schema.properties ?? {}).map(([key, prop]) => {
-        const { kind, optional } = resolve(prop);
+        const { kind, optional } = resolveKind(prop);
         return { key, prop, kind, optional };
       }),
     [schema],
@@ -127,7 +67,9 @@ export function ParamForm({
           ) : prop.enum ? (
             <select className={field} value={String(values[key])} onChange={(e) => set(key, e.target.value)}>
               {prop.enum.map((o) => (
-                <option key={o} value={o}>{o}</option>
+                <option key={o} value={o}>
+                  {o}
+                </option>
               ))}
             </select>
           ) : (
