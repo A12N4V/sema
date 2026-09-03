@@ -24,11 +24,10 @@ from typing import Any, Optional
 
 import mne
 
+from app.core.paths import SESSIONS_DIR as WORKDIR
 from app.services.ledger import Ledger
 
 SESSION_TTL_SECONDS = 60 * 60 * 2  # 2 hours of inactivity
-WORKDIR = Path.home() / ".eegvis" / "sessions"
-WORKDIR.mkdir(parents=True, exist_ok=True)
 
 
 # --- helpers ---------------------------------------------------------------
@@ -349,6 +348,9 @@ class SessionManager:
         session = Session(id=session_id, filename=filename, raw=raw)
         with self._lock:
             self._sessions[session_id] = session
+        # write an initial bundle so a refresh survives even before the first op
+        from app.services import persistence
+        persistence.save_async(session)
         return session
 
     def get(self, session_id: str) -> Session:

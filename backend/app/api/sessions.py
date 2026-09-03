@@ -44,8 +44,7 @@ def upload(file: UploadFile = File(...)) -> SessionInfo:
     # (BrainVision, EEGLAB) expect sibling files (.eeg/.vmrk, .fdt) next to the
     # header, so this single-file path covers the self-contained formats
     # (EDF/BDF/FIF/GDF/CNT); multi-file formats are a follow-up.
-    tmp_dir = Path.home() / ".eegvis" / "uploads"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
+    from app.core.paths import UPLOADS_DIR as tmp_dir
     tmp_path = tmp_dir / (safe_name or f"upload{suffix}")
 
     limit = MAX_UPLOAD_MB * 1024 * 1024
@@ -81,8 +80,7 @@ def recent() -> dict:
 @router.post("/attach", response_model=SessionInfo)
 def attach(file: UploadFile = File(...)) -> SessionInfo:
     """Attach an in-memory Raw serialized to FIF — the ``eegvis.launch()`` path."""
-    tmp_dir = Path.home() / ".eegvis" / "uploads"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
+    from app.core.paths import UPLOADS_DIR as tmp_dir
     tmp_path = tmp_dir / f"attach_{Path(file.filename or 'raw').name}"
     with tmp_path.open("wb") as out:
         shutil.copyfileobj(file.file, out)
