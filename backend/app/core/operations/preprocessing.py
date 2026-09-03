@@ -6,7 +6,7 @@ as new routes.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import Field
 
@@ -68,10 +68,30 @@ register(Operation(
 ))
 
 
+class AnnotateAmplitudeParams(OpParams):
+    peak_uv: float = Field(150.0, gt=0, description="Peak-to-peak threshold (µV) — spans above this become BAD")
+    flat_uv: Optional[float] = Field(None, description="Flat-signal threshold (µV); null = skip flat detection")
+
+
+register(Operation(
+    id="annotate_amplitude", stage="Artifact ID", label="Annotate by amplitude",
+    inputs=RAW, params_model=AnnotateAmplitudeParams,
+    run=lambda s, p: s.annotate_amplitude(p.peak_uv, p.flat_uv),
+    doc="Flag high-amplitude (and optionally flat) segments as BAD_. mne.preprocessing.annotate_amplitude",
+))
+
+
 # --- montage & reference -----------------------------------------------
 
+_MONTAGES = Literal[
+    "standard_1020", "standard_1005", "biosemi16", "biosemi32", "biosemi64",
+    "biosemi128", "biosemi256", "easycap-M1", "easycap-M10", "GSN-HydroCel-32",
+    "GSN-HydroCel-64_1.0", "GSN-HydroCel-128", "GSN-HydroCel-256", "mgh60", "mgh70",
+]
+
+
 class MontageParams(OpParams):
-    montage_name: str = Field("standard_1020", description="A standard montage name")
+    montage_name: _MONTAGES = Field("standard_1020", description="A standard montage")
 
 
 register(Operation(
@@ -83,15 +103,25 @@ register(Operation(
 
 
 class ReferenceParams(OpParams):
-    ref_channels: str | list[str] = Field("average",
-                                          description="'average' or a list of channel names")
+    mode: Literal["average", "channels"] = Field(
+        "average", description="average = common-average reference · channels = explicit")
+    channels: list[str] = Field(default_factory=list, description="channel names, for mode='channels'")
+
+
+def _run_reference(s, p) -> None:
+    if p.mode == "average":
+        s.set_reference("average")
+    else:
+        if not p.channels:
+            raise ValueError("mode='channels' needs at least one channel name")
+        s.set_reference(p.channels)
 
 
 register(Operation(
     id="set_reference", stage="Montage & channels", label="Re-reference",
     inputs=RAW, params_model=ReferenceParams,
-    run=lambda s, p: s.set_reference(p.ref_channels),
-    doc="Common-average or explicit reference. raw.set_eeg_reference",
+    run=_run_reference,
+    doc="Common-average / REST / explicit reference. raw.set_eeg_reference",
 ))
 
 

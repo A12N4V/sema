@@ -203,6 +203,30 @@ class Session:
         )
 
     @_synchronized
+    def annotate_amplitude(self, peak_uv: float, flat_uv: Optional[float]) -> None:
+        from mne.preprocessing import annotate_amplitude
+        before = _brief(self.raw)
+        annot, _ = annotate_amplitude(
+            self.raw,
+            peak=peak_uv * 1e-6,
+            flat=(flat_uv * 1e-6) if flat_uv else None,
+            bad_percent=5.0,
+            min_duration=0.05,
+            picks="eeg",
+        )
+        self.raw.set_annotations(self.raw.annotations + annot)
+        self.ledger.append(
+            "annotate_amplitude", {"peak_uv": peak_uv, "flat_uv": flat_uv},
+            label=f"Amplitude annot → {len(annot)} BAD spans",
+            template=(
+                "annot, _ = mne.preprocessing.annotate_amplitude(raw, peak={peak_uv}e-6)\n"
+                "raw.set_annotations(raw.annotations + annot)"
+            ),
+            info_before=before, info_after=_brief(self.raw),
+            replayable=False,   # annotation ops aren't in the replay dispatch
+        )
+
+    @_synchronized
     def interpolate_bads(self, reset_bads: bool = True) -> None:
         bads = list(self.raw.info["bads"])
         if not bads:
