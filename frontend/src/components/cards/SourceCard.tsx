@@ -20,6 +20,7 @@ import { useSignatureKey } from "../../store/useSignatureKey";
 export function SourceCard() {
   const session = useStore((s) => s.session);
   const t = useStore((s) => s.t);
+  const setCursor = useStore((s) => s.setCursor);
   const themeTick = useStore((s) => s.themeTick);
   const sigKey = useSignatureKey();
   const id = session?.session_id;
@@ -151,7 +152,14 @@ export function SourceCard() {
             peak vertex activation {tc ? `· ${tc.label}` : ""}
           </div>
           {tcSeries.length > 0 && win && (
-            <LinePlot series={tcSeries} xDomain={win} xLabel="s" yLabel={String(meta.method ?? "")} cursorX={t} />
+            <LinePlot
+              series={tcSeries}
+              xDomain={win}
+              xLabel="s"
+              yLabel={String(meta.method ?? "")}
+              cursorX={t}
+              onClickX={(x) => setCursor(x)}
+            />
           )}
         </div>
       </div>

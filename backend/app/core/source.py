@@ -62,19 +62,26 @@ def fsaverage_paths() -> dict:
     }
 
 
+_FS_READY: bool | None = None
+
+
 def fsaverage_ready() -> bool:
+    """Cheap check (cached) — is fsaverage already on disk? Called on every
+    graph refresh, so it must not hit the network or walk the tree."""
+    global _FS_READY
+    if _FS_READY:
+        return True
     try:
         import mne
 
-        p = mne.datasets.fetch_fsaverage.__wrapped__ if hasattr(mne.datasets.fetch_fsaverage, "__wrapped__") else None
-        _ = p
+        sd = mne.get_config("SUBJECTS_DIR") or os.path.join(
+            mne.get_config("MNE_DATA", os.path.join(os.path.expanduser("~"), "mne_data")),
+            "MNE-fsaverage-data",
+        )
+        _FS_READY = os.path.exists(os.path.join(sd, "fsaverage", "bem", "fsaverage-ico-5-src.fif"))
     except Exception:
-        pass
-    try:
-        base = os.path.join(os.path.expanduser("~"), "mne_data", "MNE-fsaverage-data", "fsaverage")
-        return os.path.exists(os.path.join(base, "bem", "fsaverage-ico-5-src.fif"))
-    except Exception:
-        return False
+        _FS_READY = False
+    return bool(_FS_READY)
 
 
 # --- the pipeline -------------------------------------------------------
