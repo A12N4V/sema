@@ -1,10 +1,10 @@
-"""Provenance ledger — a branching DAG of every mutating operation applied
+"""Provenance ledger: a branching DAG of every mutating operation applied
 to a session.
 
 Each entry records its ``parent`` (0 = the pristine recording). A ``head``
 pointer marks the current leaf. ``revert`` moves the head without deleting
 anything, so re-running an op from an earlier point *forks* a new branch and
-the old one stays available for comparison (docs/BUILD_PLAN_V2.md P0.6).
+the old one stays available for comparison .
 
 One structure, several payoffs:
   * an audit trail / "History" tree the UI can show,
@@ -120,7 +120,7 @@ class Ledger:
         self._head = seq
 
     def leaves(self) -> list[int]:
-        """Seqs that are nobody's parent — the tips of every branch."""
+        """Seqs that are nobody's parent: the tips of every branch."""
         parents = {e.parent for e in self._entries}
         tips = [e.seq for e in self._entries if e.seq not in parents]
         return tips or [0]

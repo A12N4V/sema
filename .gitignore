@@ -1,5 +1,6 @@
 # Python
-backend/venv/
+backend/.venv/
+backend/*.egg-info/
 backend/__pycache__/
 **/__pycache__/
 *.pyc
@@ -8,8 +9,11 @@ backend/__pycache__/
 frontend/node_modules/
 frontend/dist/
 
-# EEGvis runtime data (uploaded files, session working dirs)
-.eegvis/
+# Sema runtime data (uploaded files, session working dirs)
+.sema/
 
 # OS
 .DS_Store
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/

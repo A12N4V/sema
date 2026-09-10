@@ -20,10 +20,13 @@ def _get_session(session_id: str):
 # Sync def: whole-recording RMS binning and per-sample field reads run in the
 # threadpool under the session lock rather than on the event loop.
 @router.get("/viewer/overview")
-def overview(session_id: str, n_bins: int = 1200) -> dict:
+def overview(session_id: str, n_bins: int = 1200, source: str = "current") -> dict:
+    """Whole-recording RMS envelope. ``source=original`` reads the pristine copy,
+    so the navigation strip stays stable while the working copy is cleaned."""
     session = _get_session(session_id)
     with session.lock:
-        return wire.overview(session.raw, n_bins=n_bins)
+        raw = session.original_raw if source == "original" and session.original_raw is not None else session.raw
+        return wire.overview(raw, n_bins=n_bins)
 
 
 @router.get("/montage/layout")

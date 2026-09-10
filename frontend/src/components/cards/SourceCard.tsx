@@ -12,7 +12,7 @@ import { useStore } from "../../store/store";
 import { useSignatureKey } from "../../store/useSignatureKey";
 
 /**
- * Source workspace — the real `stc.plot()` inflated brain.
+ * Source workspace: the real `stc.plot()` inflated brain.
  * No stc yet → a gated "Compute source estimate" call (fetches fsaverage +
  * builds the forward solution on the first run, ~15-30 s, as a job).
  * stc present → the brain (cursor-linked) + the peak-vertex time course.
@@ -65,17 +65,17 @@ export function SourceCard() {
     return [{ id: "tc", x: tc.t, y: tc.y, color: paint(themeTick).accent, width: 1.2 }];
   }, [tc, themeTick]);
 
-  if (!session) return <Panel title="Source"><div /></Panel>;
+  if (!session) return <Panel paneId="source" title="Source"><div /></Panel>;
 
   // --- no stc yet: the compute CTA ---
   if (!status?.has_stc) {
     return (
-      <Panel title="Source — the inflated brain">
+      <Panel paneId="source" title="Source: the inflated brain">
         <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
           <Brain size={26} className="text-fg-faint" />
           {!session.has_montage ? (
             <div className="max-w-xs text-xs text-fg-dim">
-              Set a montage first — source localisation needs electrode positions.
+              Set a montage first: source localisation needs electrode positions.
             </div>
           ) : (
             <>
@@ -114,8 +114,9 @@ export function SourceCard() {
 
   // --- stc present: the brain + time course ---
   return (
-    <Panel
-      title={`Source · ${String(meta.method ?? "dSPM")}`}
+    <Panel paneId="source"
+      container="source"
+      title={`Source · ${String(meta.method ?? "dSPM")}, inverse of Raw over ${Number(meta.tmin).toFixed(1)}–${Number(meta.tmax).toFixed(1)}s`}
       right={
         <div className="flex items-center gap-1.5">
           <Segmented size="xs" value={hemi} onChange={(h) => setHemi(h)}
@@ -148,8 +149,8 @@ export function SourceCard() {
           )}
         </div>
         <div className="min-h-0 flex-[1] border-t border-seam">
-          <div className="px-2 pt-1 text-2xs text-fg-faint">
-            peak vertex activation {tc ? `· ${tc.label}` : ""}
+          <div className="mono px-2 pt-1 text-2xs text-fg-faint">
+            peak vertex activation {tc ? `· ${tc.label}` : ""}, click to move the shared cursor
           </div>
           {tcSeries.length > 0 && win && (
             <LinePlot

@@ -1,4 +1,4 @@
-"""Server-side figure rendering (docs/BUILD_PLAN_V2.md P0.5).
+"""Server-side figure rendering.
 
 One place that turns an MNE figure into a PNG, with a disk cache keyed on the
 session's signal state + the render spec + (for cursor-linked views) a
@@ -24,12 +24,19 @@ import mne  # noqa: E402
 import numpy as np  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
+from app.core import figtheme  # noqa: E402
 from app.core.spectral_ops import BANDS, compute_band_power  # noqa: E402
+
+
+# Bump when a renderer's *output* changes for the same inputs (a style change, a
+# dropped title, a new colormap). Without it the disk cache happily serves the
+# old picture forever: the state hash tracks the signal, not the drawing code.
+RENDERER_VERSION = "r2"
 
 
 class RenderSpec(BaseModel):
     view: str = Field(..., description="topomap | sensors | field3d | brain | ica_component | ica_properties")
-    source: Optional[str] = Field(None, description="topomap: 'cursor' | 'band'")
+    source: Optional[str] = Field(None, description="topomap: 'cursor' | 'band' | 'evoked'")
     t: Optional[float] = Field(None, description="cursor time in seconds (topomap/field3d/brain)")
     band: Optional[str] = Field(None, description="delta|theta|alpha|beta|gamma (topomap source='band')")
     component: Optional[int] = Field(None, description="ICA component index")
@@ -39,21 +46,24 @@ class RenderSpec(BaseModel):
     brain_view: str = Field("lateral", description="brain: lateral | medial | dorsal | ventral")
     width: int = Field(320, ge=80, le=1400)
     height: int = Field(320, ge=80, le=1400)
+    theme: str = Field("dark", description="dark | light, figures are drawn to sit on that ground")
 
     def cache_key(self, state_hash: str) -> str:
         # bucket the cursor time so scrubbing hits the cache
         tb = None if self.t is None else round(self.t, 1)
-        parts = [self.view, self.source or "", str(tb), self.band or "",
+        parts = [RENDERER_VERSION, self.view, self.source or "", str(tb), self.band or "",
                  str(self.component), f"{self.azimuth:.0f},{self.elevation:.0f}",
                  self.hemi, self.brain_view,
-                 f"{self.width}x{self.height}", state_hash]
+                 f"{self.width}x{self.height}", self.theme, state_hash]
         return hashlib.sha1("|".join(parts).encode()).hexdigest()[:16]
 
 
-def _fig_to_png(fig, width: int, height: int) -> bytes:
+def _fig_to_png(fig, width: int, height: int, theme: str = "dark") -> bytes:
+    """Size, restyle and save. Transparent, so the PNG takes the pane's ground."""
     fig.set_size_inches(width / 100, height / 100)
+    figtheme.restyle(fig, theme)
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
+    fig.savefig(buf, format="png", dpi=100, bbox_inches="tight", transparent=True)
     plt.close(fig)
     return buf.getvalue()
 
@@ -68,46 +78,72 @@ def _topomap_cursor(raw: mne.io.BaseRaw, t: float, spec: RenderSpec) -> bytes:
     s = int(np.clip(round(t * sfreq), 0, raw.n_times - 1))
     data = raw.get_data(picks=picks, start=s, stop=s + 1)[:, 0] * 1e6
     info = mne.pick_info(raw.info, picks)
-    fig, ax = plt.subplots()
-    mne.viz.plot_topomap(data, info, axes=ax, show=False, cmap="RdBu_r")
-    ax.set_title(f"t = {s / sfreq:.2f} s", fontsize=8)
-    return _fig_to_png(fig, spec.width, spec.height)
+    with plt.rc_context(figtheme.rc(spec.theme)):
+        fig, ax = plt.subplots()
+        mne.viz.plot_topomap(data, info, axes=ax, show=False, cmap="RdBu_r")
+        ax.set_title(f"t = {s / sfreq:.2f} s", fontsize=8)
+        return _fig_to_png(fig, spec.width, spec.height, spec.theme)
 
 
-def _topomap_band(raw: mne.io.BaseRaw, band: str, spec: RenderSpec) -> bytes:
+def _topomap_band(raw: mne.io.BaseRaw, band: str, spec: RenderSpec, state_hash: str) -> bytes:
     if raw.get_montage() is None:
         raise ValueError("Set a montage first")
     if band not in BANDS:
         raise ValueError(f"Unknown band {band!r}")
-    bp = compute_band_power(raw)
+    bp = band_power_cached(raw, state_hash)
     idx = mne.pick_channels(raw.ch_names, bp["channels"], ordered=True)
     info = mne.pick_info(raw.info, idx)
     vals = np.asarray(bp["bands"][band])
-    fig, ax = plt.subplots()
-    mne.viz.plot_topomap(vals, info, axes=ax, show=False)
-    ax.set_title(f"{band}", fontsize=8)
-    return _fig_to_png(fig, spec.width, spec.height)
+    with plt.rc_context(figtheme.rc(spec.theme)):
+        fig, ax = plt.subplots()
+        mne.viz.plot_topomap(vals, info, axes=ax, show=False)
+        ax.set_title(f"{band}", fontsize=8)
+        return _fig_to_png(fig, spec.width, spec.height, spec.theme)
+
+
+def _topomap_evoked(session, spec: RenderSpec) -> bytes:
+    """The evoked field at one latency. A different clock from the recording:
+    `t` here is seconds relative to the event, not absolute."""
+    evoked = getattr(session, "evoked", None)
+    if evoked is None:
+        raise ValueError("No evoked yet: average some epochs first")
+    if evoked.info.get_montage() is None:
+        raise ValueError("Set a montage first")
+    t = float(np.clip(spec.t or 0.0, evoked.times[0], evoked.times[-1]))
+    with plt.rc_context(figtheme.rc(spec.theme)):
+        fig, ax = plt.subplots()
+        evoked.plot_topomap(times=[t], axes=ax, colorbar=False, show=False,
+                            cmap="RdBu_r", time_unit="ms")
+        return _fig_to_png(fig, spec.width, spec.height, spec.theme)
 
 
 def _sensors(raw: mne.io.BaseRaw, spec: RenderSpec) -> bytes:
     if raw.get_montage() is None:
         raise ValueError("Set a montage first")
-    fig = raw.plot_sensors(show=False, show_names=True)
-    return _fig_to_png(fig, spec.width, spec.height)
+    with plt.rc_context(figtheme.rc(spec.theme)):
+        fig = raw.plot_sensors(show=False, show_names=True)
+        return _fig_to_png(fig, spec.width, spec.height, spec.theme)
 
 
 def _ica_component(ica: mne.preprocessing.ICA, raw: mne.io.BaseRaw, idx: int, spec: RenderSpec) -> bytes:
     if not (0 <= idx < ica.n_components_):
         raise ValueError(f"Component {idx} out of range")
-    fig = ica.plot_components(picks=[idx], show=False, res=64)
-    return _fig_to_png(fig, spec.width, spec.height)
+    with plt.rc_context(figtheme.rc(spec.theme)):
+        # `title=""` drops MNE's two-line "ICA components / ICA000" heading: the
+        # card underneath already says which component this is, and at 88 px the
+        # heading is most of the tile.
+        fig = ica.plot_components(picks=[idx], show=False, res=64, title="")
+        for ax in fig.axes:
+            ax.set_title("")   # the card in the grid already names the component
+        return _fig_to_png(fig, spec.width, spec.height, spec.theme)
 
 
 def _ica_properties(ica: mne.preprocessing.ICA, raw: mne.io.BaseRaw, idx: int, spec: RenderSpec) -> bytes:
     if not (0 <= idx < ica.n_components_):
         raise ValueError(f"Component {idx} out of range")
-    figs = ica.plot_properties(raw, picks=[idx], show=False)
-    return _fig_to_png(figs[0], max(spec.width, 520), max(spec.height, 420))
+    with plt.rc_context(figtheme.rc(spec.theme)):
+        figs = ica.plot_properties(raw, picks=[idx], show=False)
+        return _fig_to_png(figs[0], max(spec.width, 520), max(spec.height, 420), spec.theme)
 
 
 def _brain(session, spec: RenderSpec) -> bytes:
@@ -116,7 +152,7 @@ def _brain(session, spec: RenderSpec) -> bytes:
     try:
         return source.render_brain(
             session, t=spec.t or 0.0, hemi=spec.hemi, view=spec.brain_view,
-            width=spec.width, height=spec.height,
+            width=spec.width, height=spec.height, theme=spec.theme,
         )
     except source.SourceError as e:
         raise ValueError(str(e))
@@ -126,16 +162,16 @@ def _field3d(raw: mne.io.BaseRaw, spec: RenderSpec) -> bytes:
     from app.core import render3d, wire
 
     if not render3d.available():
-        raise ValueError("3D rendering needs pyvista — `pip install pyvista`")
+        raise ValueError("3D rendering needs pyvista: `pip install pyvista`")
     layout = wire.montage_layout(raw)
     if not layout["has_montage"] or not layout["pos3d"]:
-        raise ValueError("Set a montage first — the 3D field needs electrode positions")
+        raise ValueError("Set a montage first: the 3D field needs electrode positions")
     names = layout["channels"]
     pos = np.asarray(layout["pos3d"], dtype=float)
     vals = np.asarray(wire.field_at(raw, spec.t or 0.0, names)["values"], dtype=float)
     return render3d.render_field(
         vals, pos, width=spec.width, height=spec.height,
-        azimuth=spec.azimuth, elevation=spec.elevation,
+        azimuth=spec.azimuth, elevation=spec.elevation, theme=spec.theme,
     )
 
 
@@ -143,16 +179,18 @@ def _field3d(raw: mne.io.BaseRaw, spec: RenderSpec) -> bytes:
 
 def render(session, spec: RenderSpec) -> bytes:
     """Return a PNG for ``spec``, from the on-disk cache when possible."""
-    cache_dir = _cache_dir(session)
+    cdir = cache_dir(session)
     key = spec.cache_key(session.state_hash)
-    path = cache_dir / f"{key}.png"
+    path = cdir / f"{key}.png"
     if path.exists():
         return path.read_bytes()
 
     raw = session.raw
     if spec.view == "topomap":
-        if spec.source == "band":
-            png = _topomap_band(raw, spec.band or "alpha", spec)
+        if spec.source == "evoked":
+            png = _topomap_evoked(session, spec)
+        elif spec.source == "band":
+            png = _topomap_band(raw, spec.band or "alpha", spec, session.state_hash)
         else:
             png = _topomap_cursor(raw, spec.t or 0.0, spec)
     elif spec.view == "sensors":
@@ -171,7 +209,7 @@ def render(session, spec: RenderSpec) -> bytes:
     else:
         raise ValueError(f"Unknown view {spec.view!r}")
 
-    _write_cache(cache_dir, path, png)
+    _write_cache(cdir, path, png)
     return png
 
 
@@ -179,14 +217,35 @@ def render_b64(session, spec: RenderSpec) -> str:
     return base64.b64encode(render(session, spec)).decode("ascii")
 
 
-_CACHE_BUDGET = 400  # PNGs per session before LRU eviction
+# Every band topomap needs the whole Welch PSD, so five band tabs used to mean
+# five full recomputes: and the precompute pass would mean five more. Hold the
+# result for the current signal state (a few sessions' worth) instead.
+_BP_CACHE: dict[str, dict] = {}
+_BP_CACHE_ENTRIES = 4
 
 
-def _cache_dir(session) -> Path:
+def band_power_cached(raw: mne.io.BaseRaw, state_hash: str) -> dict:
+    hit = _BP_CACHE.get(state_hash)
+    if hit is None:
+        hit = _BP_CACHE[state_hash] = compute_band_power(raw)
+        for stale in list(_BP_CACHE)[:-_BP_CACHE_ENTRIES]:
+            del _BP_CACHE[stale]
+    return hit
+
+
+# One precomputed filmstrip (≈100 cursor topomaps) plus the band maps and the
+# interactive scrubbing on top of it: 400 evicted the filmstrip mid-session.
+_CACHE_BUDGET = 1200  # PNGs per session before LRU eviction
+
+
+def cache_dir(session) -> Path:
+    """Where this session's rendered PNGs live. Public so the precompute pass
+    can ask "is this frame already on disk?" without rendering it."""
     from app.core.paths import SESSIONS_DIR
     d = SESSIONS_DIR / session.id / "render-cache"
     d.mkdir(parents=True, exist_ok=True)
     return d
+
 
 
 def _write_cache(cache_dir: Path, path: Path, png: bytes) -> None:

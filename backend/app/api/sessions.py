@@ -15,14 +15,14 @@ from app.services.session_manager import sessions
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
 # Upload ceiling. EEG recordings are rarely over a few hundred MB; the cap is a
-# guard against a single request filling the disk. Override with EEGVIS_MAX_UPLOAD_MB.
-MAX_UPLOAD_MB = int(os.getenv("EEGVIS_MAX_UPLOAD_MB", "500"))
+# guard against a single request filling the disk. Override with SEMA_MAX_UPLOAD_MB.
+MAX_UPLOAD_MB = int(os.getenv("SEMA_MAX_UPLOAD_MB", "500"))
 _CHUNK = 1024 * 1024
 
 
 @router.post("/demo", response_model=SessionInfo)
 def demo() -> SessionInfo:
-    """Spin up a session backed by a synthetic recording — no upload needed."""
+    """Spin up a session backed by a synthetic recording, no upload needed."""
     raw = make_demo_raw()
     session = sessions.create(filename="demo · synthetic 32ch", raw=raw)
     return SessionInfo(session_id=session.id, filename=session.filename, **raw_summary(session.raw))
@@ -30,7 +30,7 @@ def demo() -> SessionInfo:
 
 @router.post("/upload", response_model=SessionInfo)
 def upload(file: UploadFile = File(...)) -> SessionInfo:
-    # Never trust the client-supplied name as a path — strip every directory
+    # Never trust the client-supplied name as a path: strip every directory
     # component so "../../etc/x.edf" can't escape the uploads dir.
     safe_name = Path(file.filename or "").name
     suffix = Path(safe_name).suffix.lower()
@@ -40,7 +40,7 @@ def upload(file: UploadFile = File(...)) -> SessionInfo:
             detail=f"Unsupported file type {suffix!r}. Supported: {', '.join(SUPPORTED_EXTENSIONS)}",
         )
 
-    # Write to a temp dir first — MNE readers need a real path, and some formats
+    # Write to a temp dir first: MNE readers need a real path, and some formats
     # (BrainVision, EEGLAB) expect sibling files (.eeg/.vmrk, .fdt) next to the
     # header, so this single-file path covers the self-contained formats
     # (EDF/BDF/FIF/GDF/CNT); multi-file formats are a follow-up.
@@ -79,7 +79,7 @@ def recent() -> dict:
 
 @router.post("/attach", response_model=SessionInfo)
 def attach(file: UploadFile = File(...)) -> SessionInfo:
-    """Attach an in-memory Raw serialized to FIF — the ``eegvis.launch()`` path."""
+    """Attach an in-memory Raw serialized to FIF: the ``sema.launch()`` path."""
     from app.core.paths import UPLOADS_DIR as tmp_dir
     tmp_path = tmp_dir / f"attach_{Path(file.filename or 'raw').name}"
     with tmp_path.open("wb") as out:

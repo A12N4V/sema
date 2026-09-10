@@ -1,4 +1,4 @@
-"""Source localisation — the real stc.plot() brain (P6).
+"""Source localisation: the real stc.plot() brain (P6).
 
 Skipped unless fsaverage is already downloaded (this suite does not trigger
 the ~770 MB fetch). Where it runs it exercises the full pipeline:

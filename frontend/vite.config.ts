@@ -4,8 +4,8 @@ import { defineConfig } from 'vite'
 
 // The frontend talks to the backend only through the relative path `/api`.
 // In dev, Vite proxies it to the FastAPI server; in prod the two are served
-// from the same origin. Override the target with EEGVIS_API_URL.
-const API_TARGET = process.env.EEGVIS_API_URL ?? 'http://localhost:8123'
+// from the same origin. Override the target with SEMA_API_URL.
+const API_TARGET = process.env.SEMA_API_URL ?? 'http://localhost:8123'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],

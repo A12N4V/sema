@@ -2,7 +2,7 @@
 
 Drives what the UI shows: per-type signal scaling, scalp vs helmet vs
 source-surface topomaps, and which processing stages appear (MEG gets SSS,
-fNIRS gets the optical-density chain, etc.). See docs/BUILD_PLAN_V2.md P0.10.
+fNIRS gets the optical-density chain, etc.). See docs/ARCHITECTURE.md.
 """
 from __future__ import annotations
 

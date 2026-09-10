@@ -3,33 +3,58 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "eegvis"
-version = "0.2.0"
-description = "A browser workbench over MNE-Python — load, clean, analyse, localise, export a reproducible script."
-readme = "../README.md"
-requires-python = ">=3.10"
+name = "sema"
+version = "1.0.0"
+description = "A browser workbench over MNE-Python: load, clean, analyse, localise, export a reproducible script."
+license = "MIT"
+requires-python = ">=3.10,<3.13"
 dependencies = [
     "fastapi>=0.111",
     "uvicorn[standard]>=0.30",
+    "python-multipart>=0.0.9",
+    "pydantic>=2.7",
     "mne>=1.7",
     "numpy>=1.26,<2.1",
     "scipy>=1.11",
-    "matplotlib>=3.8",
-    "python-multipart>=0.0.9",
-    "pydantic>=2.7",
     "scikit-learn>=1.3",
-    "httpx>=0.27",
+    "matplotlib>=3.8",
+    "pyvista>=0.43",        # offscreen 3D scalp field and inflated-brain render
+    "nibabel>=5.0",         # FreeSurfer surface / curvature I/O for the brain
+    "mne-icalabel>=0.7",    # IC classification (pulls onnxruntime)
+    "onnxruntime>=1.17",    # the ICLabel backend, pinned in explicitly so a
+    # resolver change never silently drops classification
+    "pooch>=1.8",           # fsaverage / sample-data fetching
+    "h5io>=0.2",            # MNE writes AverageTFR through this; without it
+    # the derived cache silently drops the TFR
+    "httpx>=0.27",          # the API's own test client and outbound fetches
+    "python-picard>=0.7",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-asyncio>=0.23"]
-icalabel = ["mne-icalabel>=0.7"]
 connectivity = ["mne-connectivity>=0.7"]
 bids = ["mne-bids>=0.15"]
 
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+]
+
 [project.scripts]
-eegvis = "eegvis.cli:main"
+sema = "sema.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/A12N4V/sema"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["app*", "eegvis*"]
+include = ["app*", "sema*"]
+
+[tool.uv]
+# `uv sync` builds .venv here. Python is pinned by .python-version, because
+# MNE's dependency chain is not solid on 3.13+.
+package = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]

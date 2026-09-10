@@ -8,9 +8,10 @@ command palette and auto-generate the parameter form.
 ``op.run(session, params)`` under the session lock → return the updated
 container graph + history + raw summary.
 
-This is the path every new MNE operation goes through (docs/BUILD_PLAN_V2.md
-P0.2 / P0.3). The older per-op routes in ``preprocessing.py`` etc. still work
-and now sit alongside it.
+This is the path every new MNE operation goes through, and since the older
+per-operation routes were removed it is the only one: a step that does not come
+through here does not exist in the ledger, and so does not exist in the exported
+script either.
 """
 from __future__ import annotations
 
@@ -18,7 +19,8 @@ from fastapi import APIRouter, HTTPException, Response
 from pydantic import ValidationError
 
 from app.core import operations
-from app.core.containers import ContainerKind, container_graph, session_capabilities
+from app.core.containers import (ContainerKind, auto_derived, clear_derived,
+                                  container_graph, session_capabilities)
 from app.core.loader import raw_summary
 from app.models.schemas import OpRequest
 from app.services import persistence
@@ -47,6 +49,9 @@ def _result(session) -> dict:
         return {
             "graph": [c.to_dict() for c in container_graph(session)],
             "capabilities": sorted(session_capabilities(session)),
+            # which containers are the auto-derive pass's work rather than the
+            # user's, and what it assumed to build them
+            "auto_derived": auto_derived(session),
             "history": session.ledger.to_list(),
             "head": session.ledger.head,
             "session": {"session_id": session.id, "filename": session.filename, **raw_summary(session.raw)},
@@ -82,6 +87,8 @@ def run_op(session_id: str, body: OpRequest, response: Response) -> dict:
         def _work(job) -> None:
             with session.lock:
                 op.run(session, params)
+                # the user built this one; it is no longer the pass's guess
+                clear_derived(session, op.output)
             persistence.save_async(session)
 
         job = jobs.submit(f"op:{op.id}", session_id, _work, detail=op.label)
@@ -91,6 +98,7 @@ def run_op(session_id: str, body: OpRequest, response: Response) -> dict:
     try:
         with session.lock:
             op.run(session, params)
+            clear_derived(session, op.output)
     except (ValueError, RuntimeError) as e:
         raise HTTPException(status_code=422, detail=str(e))
 
@@ -108,4 +116,5 @@ def graph(session_id: str) -> dict:
         return {
             "graph": [c.to_dict() for c in container_graph(session)],
             "capabilities": sorted(session_capabilities(session)),
+            "auto_derived": auto_derived(session),
         }

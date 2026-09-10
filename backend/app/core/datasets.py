@@ -1,6 +1,6 @@
-"""Sample datasets from ``mne.datasets`` — the "try it without a file of your
+"""Sample datasets from ``mne.datasets``: the "try it without a file of your
 own" path on Connect. First fetch downloads (and caches under ~/mne_data);
-that's why it runs as a job (docs/BUILD_PLAN_V2.md P0.10).
+that's why it runs as a job .
 """
 from __future__ import annotations
 
@@ -44,11 +44,11 @@ def _fnirs_motor() -> mne.io.BaseRaw:
 
 
 DATASETS: dict[str, dict] = {
-    "eegbci":      {"load": _eegbci,      "label": "EEGBCI — motor imagery (64-ch EEG)", "modality": "eeg"},
-    "sample":      {"load": _sample,      "label": "MNE sample — auditory/visual (MEG + EEG)", "modality": "meg"},
-    "somato":      {"load": _somato,      "label": "Somato — median-nerve SEF (MEG)", "modality": "meg"},
-    "ssvep":       {"load": _ssvep,       "label": "SSVEP — steady-state visual (EEG)", "modality": "eeg"},
-    "fnirs_motor": {"load": _fnirs_motor, "label": "fNIRS motor — finger tapping", "modality": "fnirs"},
+    "eegbci":      {"load": _eegbci,      "label": "EEGBCI, motor imagery (64-ch EEG)", "modality": "eeg"},
+    "sample":      {"load": _sample,      "label": "MNE sample, auditory/visual (MEG + EEG)", "modality": "meg"},
+    "somato":      {"load": _somato,      "label": "Somato, median-nerve SEF (MEG)", "modality": "meg"},
+    "ssvep":       {"load": _ssvep,       "label": "SSVEP, steady-state visual (EEG)", "modality": "eeg"},
+    "fnirs_motor": {"load": _fnirs_motor, "label": "fNIRS motor, finger tapping", "modality": "fnirs"},
 }
 
 

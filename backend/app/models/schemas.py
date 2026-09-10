@@ -33,31 +33,6 @@ class TraceWindowRequest(BaseModel):
     source: str = Field("current", description="'current' signal or 'original' (pristine) recording")
 
 
-class BandpassRequest(BaseModel):
-    l_freq: Optional[float] = None
-    h_freq: Optional[float] = None
-
-
-class NotchRequest(BaseModel):
-    freqs: list[float]
-
-
-class ResampleRequest(BaseModel):
-    sfreq: float = Field(..., gt=0)
-
-
-class BadChannelsRequest(BaseModel):
-    bads: list[str]
-
-
-class ReferenceRequest(BaseModel):
-    ref_channels: str | list[str] = "average"
-
-
-class MontageRequest(BaseModel):
-    montage_name: str = "standard_1020"
-
-
 class ICAFitRequest(BaseModel):
     # int (e.g. 15) = exact component count; float in (0,1) (e.g. 0.99) =
     # "explain this fraction of variance". Pydantic's smart-mode union picks
@@ -75,17 +50,6 @@ class ICASourcesRequest(BaseModel):
     start: float = Field(0, ge=0)
     duration: float = Field(10, gt=0)
     max_points: int = Field(2000, gt=10, le=20000)
-
-
-class EpochsFromAnnotationsRequest(BaseModel):
-    tmin: float = -0.2
-    tmax: float = 0.8
-    event_id: Optional[dict[str, int]] = None
-
-
-class FixedLengthEpochsRequest(BaseModel):
-    duration: float = Field(..., gt=0)
-    overlap: float = Field(0.0, ge=0)
 
 
 class PSDRequest(BaseModel):
@@ -109,7 +73,7 @@ class FieldRequest(BaseModel):
 
 
 class OpRequest(BaseModel):
-    """Generic operation dispatch — see core/operations and api/ops.py."""
+    """Generic operation dispatch: see core/operations and api/ops.py."""
     op_id: str = Field(..., description="Registered operation id, e.g. 'filter'")
     params: dict = Field(default_factory=dict, description="Params for the op's schema")
     input_ids: list[str] = Field(default_factory=lambda: ["raw"],

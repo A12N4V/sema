@@ -1,13 +1,13 @@
-"""The operation registry — the keystone of v2.
+"""The operation registry: the keystone of v2.
 
 One ``Operation`` per MNE call. Each carries its input container kind(s), a
 Pydantic param model, and a ``run`` that applies it to a ``Session``. From that
 one definition the frontend gets: the command-palette entry, an auto-generated
 param form (from the JSON schema), the ledger row, and eventually the
-``pipeline.py`` line — no per-op route, form, or client wrapper.
+``pipeline.py`` line: no per-op route, form, or client wrapper.
 
 Adding an MNE operation = one ``register(Operation(...))`` call in a module
-under ``core/operations/``. See docs/BUILD_PLAN_V2.md P0.2.
+under ``core/operations/``. See docs/ARCHITECTURE.md.
 """
 from __future__ import annotations
 

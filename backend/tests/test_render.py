@@ -1,4 +1,4 @@
-"""The server render service (docs/BUILD_PLAN_V2.md P0.5) — PNG out, disk-cached."""
+"""The server render service , PNG out, disk-cached."""
 from __future__ import annotations
 
 import pytest

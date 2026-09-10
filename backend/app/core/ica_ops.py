@@ -6,7 +6,7 @@ import io
 
 import matplotlib
 
-matplotlib.use("Agg")  # headless — this process never opens a GUI window
+matplotlib.use("Agg")  # headless, this process never opens a GUI window
 import matplotlib.pyplot as plt
 import mne
 import numpy as np
@@ -33,7 +33,7 @@ def component_summary(ica: ICA, inst: mne.io.BaseRaw) -> list[dict]:
         try:
             # get_explained_variance_ratio(inst, components=[idx]) returns
             # {'eeg': ratio_for_just_this_component} when given a single
-            # component index — calling it once per component is the
+            # component index: calling it once per component is the
             # correct (if slightly more verbose) way to get a per-component
             # breakdown; called without `components` it returns the total
             # ratio across ALL components instead, which is a different
@@ -48,6 +48,17 @@ def component_summary(ica: ICA, inst: mne.io.BaseRaw) -> list[dict]:
             "variance_explained": var,
         })
     return out
+
+
+def attach_labels(components: list[dict], labels: list[dict]) -> list[dict]:
+    """Fold ICLabel output onto the component summary. Kept separate so a
+    session without a classification returns exactly the old shape."""
+    by_index = {c["index"]: c for c in labels}
+    for comp in components:
+        hit = by_index.get(comp["index"])
+        comp["label"] = hit["label"] if hit else None
+        comp["label_prob"] = hit["prob"] if hit else None
+    return components
 
 
 def topomap_png_b64(ica: ICA, raw: mne.io.BaseRaw, component_index: int) -> str:

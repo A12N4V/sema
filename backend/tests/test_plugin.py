@@ -1,4 +1,4 @@
-"""The eegvis.launch() attach path (docs/BUILD_PLAN_V2.md P0.11)."""
+"""The sema.launch() attach path ."""
 from __future__ import annotations
 
 import io
@@ -24,7 +24,7 @@ def test_attach_a_serialised_raw(client: TestClient, tmp_path):
     assert r.status_code == 200, r.text
     info = r.json()
     assert info["n_channels"] == 32
-    # it's a normal session — ops work on it
+    # it's a normal session: ops work on it
     assert client.post(
         f"/api/sessions/{info['session_id']}/ops", json={"op_id": "filter", "params": {"l_freq": 1, "h_freq": 40}}
     ).status_code == 200

@@ -1,5 +1,5 @@
-// Typed fetch wrappers over the EEGvis backend. All calls go through the
-// relative `/api` path — Vite proxies it in dev, same-origin in prod.
+// Typed fetch wrappers over the Sema backend. All calls go through the
+// relative `/api` path: Vite proxies it in dev, same-origin in prod.
 
 const BASE = "";
 
@@ -60,6 +60,9 @@ export interface ICAComponent {
   index: number;
   excluded: boolean;
   variance_explained: number | null;
+  /** ICLabel class, null until the components have been classified. */
+  label?: string | null;
+  label_prob?: number | null;
 }
 
 export interface ICAComponentPSD {
@@ -102,7 +105,7 @@ export interface HistoryResult {
   has_ica: boolean;
 }
 
-/** A node in the session's container graph (v2 — the left rail renders this). */
+/** A node in the session's container graph (v2: the left rail renders this). */
 export interface ContainerRef {
   id: string;
   kind: "raw" | "epochs" | "evoked" | "spectrum" | "tfr" | "ica" | "forward" | "covariance" | "inverse" | "stc" | "dipole";
@@ -154,6 +157,90 @@ export interface Job {
   finished_at: number | null;
 }
 
+/**
+ * What the server has pre-rendered for the current signal state. `times` is the
+ * frame grid: the exact cursor times whose figures are already on disk, so a
+ * request for one of them comes back as a file read rather than a matplotlib run.
+ */
+export interface Filmstrip {
+  state_hash: string;
+  theme: string;
+  width: number;
+  height: number;
+  times: number[];
+  bands: string[];
+  frames_ready: number;
+  ready: boolean;
+  blocked: string | null;
+}
+
+/** One row of the channel table. Writes go through the op registry. */
+export interface ChannelRow {
+  index: number;
+  name: string;
+  type: string;
+  bad: boolean;
+  has_position: boolean;
+  unit: string;
+  mean: number;
+  std: number;
+  peak_to_peak: number;
+  flat: boolean;
+}
+
+export interface AnnotationItem {
+  index: number;
+  onset: number;
+  duration: number;
+  description: string;
+  /** BAD_* is what MNE excludes from later maths, so it reads differently. */
+  bad: boolean;
+}
+
+export interface EpochsSummary {
+  /** Trial onset in *recording* seconds, one per surviving trial. The bridge
+      between the transport cursor and the epoch clock. */
+  onsets: number[];
+  n_epochs: number;
+  n_dropped: number;
+  drop_percent: number;
+  tmin: number;
+  tmax: number;
+  sfreq: number;
+  conditions: Record<string, number>;
+  channels: string[];
+  dropped: { index: number; reason: string }[];
+}
+
+export interface EvokedResult {
+  times: number[];
+  channels: string[];
+  data: Record<string, number[]>;
+  gfp: number[];
+  nave: number;
+  peak_channel: string;
+  peak_time: number;
+  comment: string;
+}
+
+export interface TFRResult {
+  times: number[];
+  freqs: number[];
+  matrix: number[][];
+  channels: string[];
+  channel: string | null;
+  unit: string;
+  vlim: number;
+}
+
+export interface EpochsImage {
+  times: number[];
+  matrix: number[][];
+  channel: string;
+  vlim: number;
+  n_epochs: number;
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, detail: string) {
@@ -177,7 +264,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
       /* non-JSON error body */
     }
     if (res.status === 404 && /no session with id/i.test(detail)) {
-      window.dispatchEvent(new CustomEvent("eegvis:session-lost"));
+      window.dispatchEvent(new CustomEvent("sema:session-lost"));
     }
     throw new ApiError(res.status, detail);
   }
@@ -207,38 +294,32 @@ export const api = {
   // --- viewer / geometry ---
   window: (id: string, p: { start: number; duration: number; channels?: string[]; max_points?: number; source?: "current" | "original" }) =>
     req<Wire>(`/api/sessions/${id}/viewer/window`, j(p)),
-  overview: (id: string, nBins = 1200) =>
-    req<OverviewResult>(`/api/sessions/${id}/viewer/overview?n_bins=${nBins}`),
+  overview: (id: string, nBins = 1200, source: "current" | "original" = "current") =>
+    req<OverviewResult>(`/api/sessions/${id}/viewer/overview?n_bins=${nBins}&source=${source}`),
   montageLayout: (id: string) => req<MontageLayout>(`/api/sessions/${id}/montage/layout`),
   field: (id: string, t: number, channels?: string[]) =>
     req<FieldResult>(`/api/sessions/${id}/viewer/field`, j({ t, channels })),
-
-  // --- preprocessing (each records a ledger step) ---
-  bandpass: (id: string, l_freq: number | null, h_freq: number | null) =>
-    req<SessionInfo>(`/api/sessions/${id}/preprocessing/bandpass`, j({ l_freq, h_freq })),
-  notch: (id: string, freqs: number[]) =>
-    req<SessionInfo>(`/api/sessions/${id}/preprocessing/notch`, j({ freqs })),
-  resample: (id: string, sfreq: number) =>
-    req<SessionInfo>(`/api/sessions/${id}/preprocessing/resample`, j({ sfreq })),
-  setBads: (id: string, bads: string[]) =>
-    req<SessionInfo>(`/api/sessions/${id}/preprocessing/bad-channels`, j({ bads })),
-  setReference: (id: string, ref_channels: string | string[] = "average") =>
-    req<SessionInfo>(`/api/sessions/${id}/preprocessing/reference`, j({ ref_channels })),
-  setMontage: (id: string, montage_name = "standard_1020") =>
-    req<SessionInfo>(`/api/sessions/${id}/preprocessing/montage`, j({ montage_name })),
 
   // --- provenance ---
   history: (id: string) => req<HistoryResult>(`/api/sessions/${id}/history`),
   revert: (id: string, to_seq: number) =>
     req<SessionInfo>(`/api/sessions/${id}/revert`, j({ to_seq })),
 
-  // --- operations (v2 registry — one endpoint for every MNE op) ---
+  // --- operations (v2 registry: one endpoint for every MNE op) ---
   listOps: (input?: string) =>
     req<{ operations: OpSchema[] }>(`/api/ops${input ? `?input=${input}` : ""}`),
   runOp: (id: string, op_id: string, params: Record<string, unknown> = {}) =>
     req<OpResult | OpJobHandle>(`/api/sessions/${id}/ops`, j({ op_id, params })),
   graph: (id: string) =>
-    req<{ graph: ContainerRef[]; capabilities: string[] }>(`/api/sessions/${id}/graph`),
+    req<{
+      graph: ContainerRef[];
+      capabilities: string[];
+      /** containers the server filled in automatically, with their assumptions */
+      auto_derived?: Record<string, {
+        container: string; label: string; call: string;
+        assumptions: string[]; seconds: number;
+      }>;
+    }>(`/api/sessions/${id}/graph`),
   getJob: (jobId: string) => req<Job>(`/api/jobs/${jobId}`),
   sessionJobs: (id: string) => req<{ jobs: Job[] }>(`/api/sessions/${id}/jobs`),
 
@@ -263,12 +344,33 @@ export const api = {
     return URL.createObjectURL(await res.blob());
   },
 
+  /** Kick off the background pass that renders the whole recording's figures. */
+  precompute: (id: string, p: { theme: string; width?: number; height?: number }) =>
+    req<{ job_id: string; state: string }>(`/api/sessions/${id}/precompute`, j(p)),
+
+  /** Which frames exist for the current signal state (stats the cache, never renders). */
+  filmstrip: (id: string, theme: string, width: number, height: number) =>
+    req<Filmstrip>(`/api/sessions/${id}/filmstrip?theme=${theme}&width=${width}&height=${height}`),
+
+  // --- channels and annotations (reads; every write is an operation) ---
+  channels: (id: string) => req<{ channels: ChannelRow[]; sampled_every: number }>(`/api/sessions/${id}/channels`),
+  annotations: (id: string) =>
+    req<{ annotations: AnnotationItem[]; labels: string[]; duration: number }>(`/api/sessions/${id}/annotations`),
+
+  // --- the epoched containers ---
+  epochsSummary: (id: string) => req<EpochsSummary>(`/api/sessions/${id}/epochs/summary`),
+  epochsImage: (id: string, channel: string) =>
+    req<EpochsImage>(`/api/sessions/${id}/epochs/image?channel=${encodeURIComponent(channel)}`),
+  evoked: (id: string) => req<EvokedResult>(`/api/sessions/${id}/evoked`),
+  tfr: (id: string, channel?: string) =>
+    req<TFRResult>(`/api/sessions/${id}/tfr${channel ? `?channel=${encodeURIComponent(channel)}` : ""}`),
+
   // --- ICA ---
   fitIca: (id: string, n_components: number, method = "fastica") =>
     req<{ n_components: number; components: ICAComponent[] }>(`/api/sessions/${id}/ica/fit`, j({ n_components, method })),
   icaComponents: (id: string) => req<{ components: ICAComponent[] }>(`/api/sessions/${id}/ica/components`),
-  icaTopomap: (id: string, index: number) =>
-    req<{ index: number; png_base64: string }>(`/api/sessions/${id}/ica/components/${index}/topomap`),
+  icaTopomap: (id: string, index: number, theme = "dark") =>
+    req<{ index: number; png_base64: string }>(`/api/sessions/${id}/ica/components/${index}/topomap?theme=${theme}`),
   icaExclude: (id: string, exclude: number[]) =>
     req<{ components: ICAComponent[] }>(`/api/sessions/${id}/ica/exclude`, j({ exclude })),
   icaSources: (id: string, p: { start: number; duration: number; max_points?: number }) =>

@@ -9,7 +9,7 @@ The ``Session`` class is both the state bag and the service: routers call
 performs the MNE call and records a ``LedgerEntry``. That makes every
 endpoint a 3-liner and gives revert / pipeline-export / audit for free.
 
-Kept resident in a process-wide dict — see ARCHITECTURE.md for why this
+Kept resident in a process-wide dict: see ARCHITECTURE.md for why this
 isn't a database. Idle sessions are evicted after SESSION_TTL_SECONDS.
 """
 from __future__ import annotations
@@ -73,6 +73,23 @@ _REPLAY_DISPATCH = {
     "interpolate_bads": lambda raw, p: raw.interpolate_bads(
         reset_bads=p["reset_bads"], verbose="ERROR"
     ),
+    "rename_channels": lambda raw, p: raw.rename_channels(p["mapping"]),
+    "set_channel_types": lambda raw, p: raw.set_channel_types(p["mapping"], verbose="ERROR"),
+    "drop_channels": lambda raw, p: raw.drop_channels(
+        [c for c in p["channels"] if c in raw.ch_names]),
+    "reorder_channels": lambda raw, p: raw.reorder_channels(
+        [c for c in p["order"] if c in raw.ch_names]),
+    "set_annotations": lambda raw, p: raw.set_annotations(mne.Annotations(
+        onset=[a["onset"] for a in p["annotations"]],
+        duration=[a["duration"] for a in p["annotations"]],
+        description=[a["description"] for a in p["annotations"]],
+    )),
+    "detect_bad_channels": lambda raw, p: _set_bads(raw, p["found"]),
+    "annotate_muscle": lambda raw, p: raw.set_annotations(
+        raw.annotations + mne.Annotations(
+            onset=[a["onset"] for a in p["found"]],
+            duration=[a["duration"] for a in p["found"]],
+            description=[a["description"] for a in p["found"]])),
 }
 
 
@@ -99,9 +116,20 @@ class Session:
     filename: str
     raw: mne.io.BaseRaw
     epochs: Optional[mne.Epochs] = None
+    evoked: Optional[Any] = None                  # mne.Evoked, epochs.average()
+    tfr: Optional[Any] = None                     # mne.time_frequency.AverageTFR
     ica: Optional[mne.preprocessing.ICA] = None
+    # ICLabel output: one dict per component, {"label", "prob"}. Kept beside the
+    # ICA rather than on it, because MNE has nowhere to put it.
+    ica_labels: list[dict] = field(default_factory=list)
     stc: Optional[Any] = None                     # mne.SourceEstimate (recomputable, not bundled)
     stc_meta: dict = field(default_factory=dict)
+    # Auto-derived views (core/autoderive.py) plus the assumptions behind them.
+    # Deliberately NOT ledger steps: they fill the workspaces that would
+    # otherwise open empty, and they are replaced the moment the user runs the
+    # real operation. Everything listed here is disclosed in the UI; none of it
+    # is ever presented as the user's own work or exported as their pipeline.
+    derived: list = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
     last_used: float = field(default_factory=time.time)
     # Held by every op that touches raw/epochs/ica. Callers on other threads
@@ -125,7 +153,7 @@ class Session:
 
     @property
     def state_hash(self) -> str:
-        """Changes whenever the signal changes — render-cache key (P0.5)."""
+        """Changes whenever the signal changes: render-cache key (P0.5)."""
         from app.core.render import state_hash_for
         return state_hash_for(self.raw, self.ledger.head, self.ica is not None)
 
@@ -244,7 +272,7 @@ class Session:
     def interpolate_bads(self, reset_bads: bool = True) -> None:
         bads = list(self.raw.info["bads"])
         if not bads:
-            raise ValueError("No bad channels marked — nothing to interpolate")
+            raise ValueError("No bad channels marked: nothing to interpolate")
         if self.raw.get_montage() is None:
             raise ValueError("Interpolation needs a montage (electrode positions)")
         before = _brief(self.raw)
@@ -260,6 +288,12 @@ class Session:
     def fit_ica(self, n_components: float | int, method: str) -> None:
         from app.core import ica_ops
         self.ica = ica_ops.fit_ica(self.raw, n_components=n_components, method=method)
+        # The old labels described the *old* decomposition. Component 7 of a
+        # fresh fit is not component 7 of the one before it, so carrying them
+        # over would put "eye blink, 94%" on an unrelated component. This was
+        # survivable when sessions started with no ICA at all; now that one is
+        # fitted and classified on load, every manual refit hit it.
+        self.ica_labels = []
         self.ledger.append(
             "fit_ica", {"n_components": n_components, "method": method},
             label=f"Fit ICA ({method}, n={self.ica.n_components_})",
@@ -285,7 +319,7 @@ class Session:
         self.ica.apply(self.raw, verbose="ERROR")
         entry = self.ledger.append(
             "apply_ica", {"exclude": list(self.ica.exclude)},
-            label=f"Apply ICA — removed {list(self.ica.exclude)}",
+            label=f"Apply ICA, removed {list(self.ica.exclude)}",
             template="ica.exclude = {exclude}\nica.apply(raw)",
             info_before=before, info_after=_brief(self.raw),
             replayable=False,
@@ -293,6 +327,247 @@ class Session:
         self._ica_checkpoints[entry.seq] = self.raw.copy()  # snapshot AFTER apply
 
     # --- provenance: replay / revert / codegen ---------------------------
+
+    # --- channels ---------------------------------------------------------
+
+    @_synchronized
+    def rename_channels(self, mapping: dict[str, str]) -> None:
+        before = _brief(self.raw)
+        self.raw.rename_channels(mapping)
+        self.ledger.append(
+            "rename_channels", {"mapping": dict(mapping)},
+            label=f"Rename {len(mapping)} channel{'s' if len(mapping) != 1 else ''}",
+            template="raw.rename_channels({mapping!r})",
+            info_before=before, info_after=_brief(self.raw),
+        )
+
+    @_synchronized
+    def set_channel_types(self, mapping: dict[str, str]) -> None:
+        before = _brief(self.raw)
+        self.raw.set_channel_types(mapping, verbose="ERROR")
+        self.ledger.append(
+            "set_channel_types", {"mapping": dict(mapping)},
+            label=f"Retype {len(mapping)} channel{'s' if len(mapping) != 1 else ''}",
+            template="raw.set_channel_types({mapping!r})",
+            info_before=before, info_after=_brief(self.raw),
+        )
+
+    @_synchronized
+    def drop_channels(self, channels: list[str]) -> None:
+        keep = [c for c in channels if c in self.raw.ch_names]
+        if not keep:
+            raise ValueError("None of those channels are in this recording")
+        if len(keep) >= len(self.raw.ch_names):
+            raise ValueError("Refusing to drop every channel")
+        before = _brief(self.raw)
+        self.raw.drop_channels(keep)
+        self.ledger.append(
+            "drop_channels", {"channels": keep},
+            label=f"Drop {', '.join(keep[:3])}{'...' if len(keep) > 3 else ''}",
+            template="raw.drop_channels({channels!r})",
+            info_before=before, info_after=_brief(self.raw),
+        )
+
+    @_synchronized
+    def reorder_channels(self, order: list[str]) -> None:
+        keep = [c for c in order if c in self.raw.ch_names]
+        before = _brief(self.raw)
+        self.raw.reorder_channels(keep)
+        self.ledger.append(
+            "reorder_channels", {"order": keep},
+            label=f"Reorder {len(keep)} channels",
+            template="raw.reorder_channels({order!r})",
+            info_before=before, info_after=_brief(self.raw),
+        )
+
+    @_synchronized
+    def detect_bad_channels(self, threshold: float, n_neighbors: int) -> list[str]:
+        """Local Outlier Factor over channel covariance: MNE's answer to the
+        channel-rejection half of EEGLAB's clean_rawdata."""
+        before = _brief(self.raw)
+        picks = mne.pick_types(self.raw.info, eeg=True, exclude=())
+        n_neighbors = max(2, min(n_neighbors, len(picks) - 1))
+        found = mne.preprocessing.find_bad_channels_lof(
+            self.raw, n_neighbors=n_neighbors, threshold=threshold,
+            picks="eeg", verbose="ERROR")
+        merged = sorted(set(self.raw.info["bads"]) | set(found))
+        _set_bads(self.raw, merged)
+        self.ledger.append(
+            "detect_bad_channels",
+            {"threshold": threshold, "n_neighbors": n_neighbors, "found": merged},
+            label=f"Detected {len(found)} bad channel{'s' if len(found) != 1 else ''}",
+            template=("raw.info['bads'] = mne.preprocessing.find_bad_channels_lof("
+                      "raw, n_neighbors={n_neighbors}, threshold={threshold})"),
+            info_before=before, info_after=_brief(self.raw),
+        )
+        return list(found)
+
+    # --- annotations ------------------------------------------------------
+
+    @_synchronized
+    def set_annotations(self, annotations: list[dict]) -> None:
+        """Replace the whole annotation set. The UI edits a list and sends it
+        back whole, which keeps the ledger entry replayable as one value."""
+        before = _brief(self.raw)
+        self.raw.set_annotations(mne.Annotations(
+            onset=[float(a["onset"]) for a in annotations],
+            duration=[float(a.get("duration", 0.0)) for a in annotations],
+            description=[str(a["description"]) for a in annotations],
+        ))
+        self.ledger.append(
+            "set_annotations", {"annotations": annotations},
+            label=f"{len(annotations)} annotation{'s' if len(annotations) != 1 else ''}",
+            template="raw.set_annotations(mne.Annotations(**{annotations!r}))",
+            info_before=before, info_after=_brief(self.raw),
+        )
+
+    @_synchronized
+    def annotate_muscle(self, threshold: float, min_length_good: float) -> int:
+        """z-scored high-frequency power over the whole recording, which is what
+        muscle artifact looks like. Appends rather than replaces."""
+        before = _brief(self.raw)
+        annot, _ = mne.preprocessing.annotate_muscle_zscore(
+            self.raw, threshold=threshold, ch_type="eeg",
+            min_length_good=min_length_good, filter_freq=(110, 140)
+            if self.raw.info["sfreq"] > 300 else (95, min(self.raw.info["sfreq"] / 2 - 1, 120)),
+            verbose="ERROR")
+        found = [{"onset": float(o), "duration": float(d), "description": str(desc)}
+                 for o, d, desc in zip(annot.onset, annot.duration, annot.description)]
+        self.raw.set_annotations(self.raw.annotations + annot)
+        self.ledger.append(
+            "annotate_muscle",
+            {"threshold": threshold, "min_length_good": min_length_good, "found": found},
+            label=f"{len(found)} muscle segment{'s' if len(found) != 1 else ''}",
+            template=("annot, _ = mne.preprocessing.annotate_muscle_zscore("
+                      "raw, threshold={threshold}, ch_type='eeg', "
+                      "min_length_good={min_length_good})\nraw.set_annotations(raw.annotations + annot)"),
+            info_before=before, info_after=_brief(self.raw),
+        )
+        return len(found)
+
+    # --- ICA classification ----------------------------------------------
+
+    @_synchronized
+    def label_ica(self) -> list[dict]:
+        """ICLabel: the classifier EEGLAB users reach for. Needs an average
+        reference and a 1-100 Hz band, which is what the model was trained on."""
+        from mne_icalabel import label_components
+
+        if self.ica is None:
+            raise ValueError("Fit an ICA first")
+        work = self.raw.copy().pick("eeg")
+        if not work.info["custom_ref_applied"]:
+            work.set_eeg_reference("average", verbose="ERROR")
+        result = label_components(work, self.ica, method="iclabel")
+        self.ica_labels = [
+            {"index": i, "label": str(lbl), "prob": float(p)}
+            for i, (lbl, p) in enumerate(zip(result["labels"], result["y_pred_proba"]))
+        ]
+        self.ledger.append(
+            "label_ica", {},
+            label=f"Classified {len(self.ica_labels)} components",
+            template="from mne_icalabel import label_components\nlabel_components(raw, ica, method='iclabel')",
+            replayable=False,
+        )
+        return self.ica_labels
+
+    @_synchronized
+    def exclude_ica_by_label(self, labels: list[str], min_prob: float) -> list[int]:
+        if self.ica is None:
+            raise ValueError("Fit an ICA first")
+        if not self.ica_labels:
+            raise ValueError("Classify the components first")
+        wanted = {l.lower() for l in labels}
+        picked = sorted({c["index"] for c in self.ica_labels
+                         if c["label"].lower() in wanted and c["prob"] >= min_prob})
+        self.ica.exclude = picked
+        self.ledger.append(
+            "exclude_ica_by_label",
+            {"labels": list(labels), "min_prob": min_prob, "excluded": picked},
+            label=f"Marked {len(picked)} component{'s' if len(picked) != 1 else ''} for removal",
+            template="ica.exclude = {excluded!r}",
+            replayable=False,
+        )
+        return picked
+
+    # --- epochs, evoked, time-frequency -----------------------------------
+
+    @_synchronized
+    def make_epochs(self, tmin: float, tmax: float, description: Optional[str],
+                    baseline: bool, reject_uv: Optional[float]) -> None:
+        """Cut trials. Events come from annotations when there are any worth
+        using, and otherwise from a fixed-length grid, so a resting recording
+        still reaches the epoch-shaped half of MNE."""
+        before = _brief(self.raw)
+        reject = {"eeg": reject_uv * 1e-6} if reject_uv else None
+        base = (None, 0) if baseline else None
+
+        annots = self.raw.annotations
+        usable = [d for d in set(annots.description) if not str(d).upper().startswith("BAD")]
+        if description:
+            usable = [d for d in usable if d == description]
+
+        if usable:
+            events, event_id = mne.events_from_annotations(
+                self.raw, event_id={d: i + 1 for i, d in enumerate(sorted(usable))},
+                verbose="ERROR")
+            source = f"annotations ({', '.join(sorted(usable))})"
+            epochs = mne.Epochs(self.raw, events, event_id=event_id, tmin=tmin, tmax=tmax,
+                                baseline=base, reject=reject, preload=True, verbose="ERROR")
+        else:
+            duration = max(0.1, tmax - tmin)
+            events = mne.make_fixed_length_events(self.raw, duration=duration, overlap=0.0)
+            epochs = mne.Epochs(self.raw, events, tmin=0, tmax=duration, baseline=base,
+                                reject=reject, preload=True, verbose="ERROR")
+            source = f"fixed length ({duration:g}s)"
+
+        if len(epochs) == 0:
+            raise ValueError("No epochs survived: loosen the rejection threshold")
+        self.epochs = epochs
+        self.evoked = None
+        self.tfr = None
+        self.ledger.append(
+            "make_epochs",
+            {"tmin": tmin, "tmax": tmax, "description": description,
+             "baseline": baseline, "reject_uv": reject_uv},
+            label=f"{len(epochs)} epochs from {source}",
+            template=("events = mne.make_fixed_length_events(raw, duration={tmax})\n"
+                      "epochs = mne.Epochs(raw, events, tmin={tmin}, tmax={tmax}, preload=True)"),
+            info_before=before, info_after=_brief(self.raw), replayable=False,
+        )
+
+    @_synchronized
+    def average_epochs(self, condition: Optional[str]) -> None:
+        if self.epochs is None:
+            raise ValueError("Create epochs first")
+        source = self.epochs[condition] if condition else self.epochs
+        self.evoked = source.average()
+        self.ledger.append(
+            "average_epochs", {"condition": condition},
+            label=f"Evoked from {len(source)} epochs" + (f" ({condition})" if condition else ""),
+            template="evoked = epochs.average()",
+            replayable=False,
+        )
+
+    @_synchronized
+    def compute_tfr(self, fmin: float, fmax: float, n_freqs: int, decim: int) -> None:
+        import numpy as np
+
+        if self.epochs is None:
+            raise ValueError("Create epochs first")
+        freqs = np.linspace(fmin, fmax, max(2, n_freqs))
+        n_cycles = np.maximum(2.0, freqs / 2.0)
+        self.tfr = self.epochs.compute_tfr(
+            method="morlet", freqs=freqs, n_cycles=n_cycles, average=True,
+            decim=max(1, decim), return_itc=False, verbose="ERROR")
+        self.ledger.append(
+            "compute_tfr", {"fmin": fmin, "fmax": fmax, "n_freqs": n_freqs, "decim": decim},
+            label=f"Morlet TFR {fmin:g}-{fmax:g} Hz",
+            template=("freqs = np.linspace({fmin}, {fmax}, {n_freqs})\n"
+                      "power = epochs.compute_tfr('morlet', freqs=freqs, "
+                      "n_cycles=freqs/2, average=True, decim={decim})"),
+            replayable=False,
+        )
 
     @_synchronized
     def replay(self, seq: int) -> mne.io.BaseRaw:
@@ -320,7 +595,7 @@ class Session:
 
     @_synchronized
     def revert(self, to_seq: int) -> None:
-        """Check out ledger entry ``to_seq`` (0 = pristine). Nothing is deleted —
+        """Check out ledger entry ``to_seq`` (0 = pristine). Nothing is deleted -
         applying an op from here forks a new branch off ``to_seq``."""
         self.raw = self.replay(to_seq)
         self.ledger.set_head(to_seq)
@@ -337,7 +612,7 @@ class Session:
     def to_python(self) -> str:
         """Emit a runnable MNE script that reproduces this session."""
         head = [
-            '"""Generated by EEGvis — reproduces the cleaning pipeline for',
+            '"""Generated by Sema: reproduces the cleaning pipeline for',
             f"    {self.filename}",
             '"""',
             "import mne",
@@ -349,7 +624,7 @@ class Session:
         body = [entry.render() for entry in self.ledger.current_path()]
         if not body:
             body = ["# (no operations recorded yet)"]
-        tail = ["", "raw.save('eegvis_cleaned_raw.fif', overwrite=True)"]
+        tail = ["", "raw.save('sema_cleaned_raw.fif', overwrite=True)"]
         return "\n".join(head + body + tail) + "\n"
 
 
@@ -372,7 +647,7 @@ class SessionManager:
         with self._lock:
             session = self._sessions.get(session_id)
         if session is None:
-            # not resident — try to rehydrate from an on-disk bundle (P0.11)
+            # not resident: try to rehydrate from an on-disk bundle (P0.11)
             from app.services import persistence
             if persistence.exists(session_id):
                 try:
@@ -408,5 +683,5 @@ class SessionManager:
         return d
 
 
-# Single process-wide instance — imported by the API routers.
+# Single process-wide instance: imported by the API routers.
 sessions = SessionManager()

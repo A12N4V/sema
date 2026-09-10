@@ -38,8 +38,8 @@ def test_overview_and_layout(client: TestClient, sid: str):
 
 
 def test_preprocess_then_history_then_pipeline(client: TestClient, sid: str):
-    client.post(f"/api/sessions/{sid}/preprocessing/bandpass", json={"l_freq": 1, "h_freq": 40})
-    client.post(f"/api/sessions/{sid}/preprocessing/notch", json={"freqs": [60]})
+    client.post(f"/api/sessions/{sid}/ops", json={"op_id": "filter", "params": {"l_freq": 1, "h_freq": 40}})
+    client.post(f"/api/sessions/{sid}/ops", json={"op_id": "notch", "params": {"freqs": [60]}})
     hist = client.get(f"/api/sessions/{sid}/history").json()
     assert [e["op"] for e in hist["entries"]] == ["filter", "notch"]
 
@@ -56,7 +56,7 @@ def test_field_at_cursor(client: TestClient, sid: str):
 
 
 def test_ica_fit_sources_and_psd(client: TestClient, sid: str):
-    client.post(f"/api/sessions/{sid}/preprocessing/bandpass", json={"l_freq": 1, "h_freq": 40})
+    client.post(f"/api/sessions/{sid}/ops", json={"op_id": "filter", "params": {"l_freq": 1, "h_freq": 40}})
     fit = client.post(f"/api/sessions/{sid}/ica/fit", json={"n_components": 8}).json()
     assert fit["n_components"] == 8
 

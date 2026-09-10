@@ -2,24 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { X, ChevronLeft, Lock } from "lucide-react";
 import { api, type OpSchema } from "../../api/client";
 import { runOp } from "../../lib/ops";
+import { useCapabilities } from "../../lib/useCapabilities";
 import { useStore } from "../../store/store";
 import { ParamForm, type JsonSchema } from "./ParamForm";
-
-/** Capabilities the session currently satisfies — mirrors the backend's
- *  `session_capabilities()` so the palette can gate ops without a round trip. */
-function useCapabilities(): Set<string> {
-  const session = useStore((s) => s.session);
-  const hasIca = useStore((s) => s.hasIca);
-  return useMemo(() => {
-    const c = new Set<string>();
-    if (!session) return c;
-    if (session.has_montage) c.add("montage");
-    if ((session.highpass ?? 0) >= 1) c.add("filtered_1hz");
-    if (session.bads.length) c.add("has_bads");
-    if (hasIca) c.add("ica");
-    return c;
-  }, [session, hasIca]);
-}
 
 /** Mounted only while open (see PaletteMount), so state starts fresh each time. */
 export function CommandPalette({ onClose }: { onClose: () => void }) {
@@ -29,13 +14,23 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState<OpSchema | null>(null);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const active = useStore((s) => s.activeContainerId);
+  const paletteOpId = useStore((s) => s.paletteOpId);
 
+  // Every operation is listed always: the capability lock below (not a
+  // container filter) is what says whether it's reachable right now, and
+  // why. A toolbar shortcut can also land straight in one op's form.
   useEffect(() => {
-    api.listOps(active).then((r) => setOps(r.operations)).catch(() => setOps([]));
+    api.listOps().then((r) => {
+      setOps(r.operations);
+      if (paletteOpId) {
+        const op = r.operations.find((o) => o.id === paletteOpId);
+        if (op) setSelected(op);
+      }
+    }).catch(() => setOps([]));
     const t = setTimeout(() => inputRef.current?.focus(), 30);
     return () => clearTimeout(t);
-  }, [active]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const onEsc = (e: KeyboardEvent) => {
@@ -64,7 +59,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     if (!selected) return;
     setBusy(true);
     try {
-      await runOp(selected.id, params, `${selected.label} — done`);
+      await runOp(selected.id, params, `${selected.label}, done`);
       onClose();
     } catch {
       /* toast already fired */
@@ -75,10 +70,10 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[12vh] backdrop-blur-[1px]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[10vh] backdrop-blur-[1px] max-[480px]:pt-4"
       onMouseDown={onClose}
     >
-      <div className="pop flex max-h-[70vh] w-[560px] flex-col overflow-hidden" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="pop flex max-h-[80vh] w-[560px] max-w-[92vw] flex-col overflow-hidden" onMouseDown={(e) => e.stopPropagation()}>
         <header className="flex items-center gap-2 border-b border-seam px-3 py-2">
           {selected ? (
             <button onClick={() => setSelected(null)} className="rounded-xs p-0.5 text-fg-faint hover:text-fg">
@@ -92,7 +87,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={`Run an operation on ${active}…`}
+              placeholder="Run an operation…"
               className="flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-fg-faint"
             />
           )}
