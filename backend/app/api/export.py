@@ -26,7 +26,7 @@ def export_raw_fif(session_id: str):
     out_path = sessions.session_dir(session_id) / "cleaned_raw.fif"
     with session.lock:
         session.raw.save(str(out_path), overwrite=True, verbose="ERROR")
-    return FileResponse(str(out_path), filename="eegvis_cleaned_raw.fif", media_type="application/octet-stream")
+    return FileResponse(str(out_path), filename="sema_cleaned_raw.fif", media_type="application/octet-stream")
 
 
 @router.get("/epochs.fif")
@@ -37,7 +37,7 @@ def export_epochs_fif(session_id: str):
             raise HTTPException(status_code=400, detail="No epochs created yet")
         out_path = sessions.session_dir(session_id) / "epochs-epo.fif"
         session.epochs.save(str(out_path), overwrite=True, verbose="ERROR")
-    return FileResponse(str(out_path), filename="eegvis_epochs-epo.fif", media_type="application/octet-stream")
+    return FileResponse(str(out_path), filename="sema_epochs-epo.fif", media_type="application/octet-stream")
 
 
 @router.get("/pipeline.py", response_class=PlainTextResponse)
@@ -53,7 +53,7 @@ def export_summary_csv(session_id: str):
     w = csv.writer(buf)
 
     with session.lock:
-        w.writerow(["# EEGvis session summary", session.filename])
+        w.writerow(["# Sema session summary", session.filename])
         w.writerow([])
         w.writerow(["## pipeline"])
         w.writerow(["seq", "op", "label"])
@@ -74,5 +74,5 @@ def export_summary_csv(session_id: str):
     return StreamingResponse(
         iter([buf.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=eegvis_summary.csv"},
+        headers={"Content-Disposition": "attachment; filename=sema_summary.csv"},
     )

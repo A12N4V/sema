@@ -9,13 +9,18 @@ const THEME_OPTS: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: "dark", label: "Dark", icon: Moon },
 ];
 
+/** Kept in step with the handler in App.tsx by hand: if you add one there, add
+ *  it here. A shortcut card that lists a key which does nothing is worse than
+ *  no card, and this one advertised F1-F7 for a solo mode that no longer
+ *  exists. */
 const SHORTCUTS: [string, string][] = [
+  ["⌘K / Ctrl+K", "Command palette"],
+  ["⌘1 / ⌘2 / ⌘3", "Signal · Channels · ICA"],
   ["Space", "Play / pause"],
   ["← / →", "Page the window"],
   ["Shift + ← / →", "Nudge cursor 1 s"],
   ["[  /  ]", "Shrink / grow window"],
-  ["F1 – F7", "Solo a panel"],
-  ["Esc", "Exit solo view"],
+  ["Esc", "Exit a maximized pane"],
 ];
 
 export function Settings() {
@@ -35,10 +40,10 @@ export function Settings() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[14vh] backdrop-blur-[1px]"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 pt-[14vh] backdrop-blur-[1px] max-[480px]:pt-6"
       onMouseDown={() => setOpen(false)}
     >
-      <div className="pop w-[420px] overflow-hidden" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="pop w-[420px] max-w-[92vw] overflow-hidden" onMouseDown={(e) => e.stopPropagation()}>
         <header className="flex items-center justify-between border-b border-seam px-4 py-2.5">
           <span className="text-md font-semibold text-fg">Settings</span>
           <button onClick={() => setOpen(false)} className="rounded-xs p-0.5 text-fg-faint hover:bg-panel-2 hover:text-fg">

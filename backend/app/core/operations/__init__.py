@@ -12,4 +12,7 @@ from app.core.operations.base import (  # noqa: F401
     ops_for,
     register,
 )
-from app.core.operations import preprocessing  # noqa: F401  (registers Raw-stage ops)
+from app.core.operations import preprocessing  # noqa: F401  (Raw stage)
+from app.core.operations import channels       # noqa: F401  (channel table, annotations)
+from app.core.operations import decomposition  # noqa: F401  (ICLabel)
+from app.core.operations import analysis       # noqa: F401  (epochs, evoked, TFR)

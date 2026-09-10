@@ -14,9 +14,9 @@ export interface WizardStep {
 }
 
 /**
- * A gated multi-step flow (docs/BUILD_PLAN_V2.md P0.7). Steps show as a
+ * A gated multi-step flow . Steps show as a
  * checklist; the first not-done step is expanded. Used for source setup,
- * BIDS export, epoching — anything with prerequisites.
+ * BIDS export, epoching: anything with prerequisites.
  */
 export function Wizard({
   title,

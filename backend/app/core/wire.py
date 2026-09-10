@@ -27,7 +27,7 @@ def to_wire(
 ) -> dict[str, Any]:
     """data: (n_channels, n_samples) in volts. Returns µV, decimated.
 
-    Shape: ``{channels, sfreq, t0, dt, time, data:{ch:[...]}}`` — ``time`` is
+    Shape: ``{channels, sfreq, t0, dt, time, data:{ch:[...]}}``, ``time`` is
     shared across channels (identical bucketing).
     """
     data = np.asarray(data, dtype=float) * unit_scale

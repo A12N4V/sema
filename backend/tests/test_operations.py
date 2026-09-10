@@ -1,4 +1,4 @@
-"""The operation registry (docs/BUILD_PLAN_V2.md P0.2) and the generic
+"""The operation registry  and the generic
 /ops dispatch endpoint."""
 from __future__ import annotations
 

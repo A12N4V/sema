@@ -1,12 +1,12 @@
-"""``eegvis.launch(raw)`` — open the current in-memory recording in the
-EEGvis workbench from a notebook or script.
+"""``sema.launch(raw)``: open the current in-memory recording in the
+Sema workbench from a notebook or script.
 
-    import eegvis
-    eegvis.launch(raw)
+    import sema
+    sema.launch(raw)
 
 Starts the API + web server if one isn't already up, serialises ``raw`` to a
 temp FIF, attaches it as a session, and opens the browser at ``/s/<id>``.
-See docs/BUILD_PLAN_V2.md P0.11.
+See docs/ARCHITECTURE.md.
 """
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ def _spawn_server(host: str, port: int) -> None:
         if _api_up(host, port):
             return
         time.sleep(0.5)
-    raise RuntimeError("EEGvis API did not come up within 30 s")
+    raise RuntimeError("Sema API did not come up within 30 s")
 
 
 @atexit.register
@@ -66,17 +66,17 @@ def launch(
     open_browser: bool = True,
     block: bool = False,
 ) -> str:
-    """Attach ``raw`` to a new EEGvis session and open it. Returns the URL."""
+    """Attach ``raw`` to a new Sema session and open it. Returns the URL."""
     if not _api_up(host, api_port):
         _spawn_server(host, api_port)
 
-    tmp = Path(tempfile.mkdtemp()) / "eegvis_launch_raw.fif"
+    tmp = Path(tempfile.mkdtemp()) / "sema_launch_raw.fif"
     raw.save(tmp, overwrite=True, verbose="ERROR")
 
     with tmp.open("rb") as f:
         r = httpx.post(
             f"http://{host}:{api_port}/api/sessions/attach",
-            files={"file": ("eegvis_launch_raw.fif", f, "application/octet-stream")},
+            files={"file": ("sema_launch_raw.fif", f, "application/octet-stream")},
             timeout=120.0,
         )
     r.raise_for_status()
@@ -85,7 +85,7 @@ def launch(
     url = f"http://{host}:{web_port}/s/{sid}"
     if open_browser:
         webbrowser.open(url)
-    print(f"EEGvis: {url}")
+    print(f"Sema: {url}")
     if block:
         try:
             while True:

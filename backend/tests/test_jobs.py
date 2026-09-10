@@ -1,4 +1,4 @@
-"""The job runner (docs/BUILD_PLAN_V2.md P0.3) — long_running ops dispatch
+"""The job runner : long_running ops dispatch
 to the pool and the request returns 202 immediately."""
 from __future__ import annotations
 

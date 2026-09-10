@@ -1,4 +1,4 @@
-"""Source localisation — the real ``stc.plot()`` inflated brain (P6).
+"""Source localisation: the real ``stc.plot()`` inflated brain (P6).
 
 Template pipeline for EEG with no individual MRI, exactly as the MNE docs
 prescribe: fsaverage source space + BEM (both ship prebuilt with
@@ -66,7 +66,7 @@ _FS_READY: bool | None = None
 
 
 def fsaverage_ready() -> bool:
-    """Cheap check (cached) — is fsaverage already on disk? Called on every
+    """Cheap check (cached): is fsaverage already on disk? Called on every
     graph refresh, so it must not hit the network or walk the tree."""
     global _FS_READY
     if _FS_READY:
@@ -117,7 +117,7 @@ def compute_source_estimate(session, *, method: str = "dSPM", center_t: float = 
         raise SourceError(f"method must be one of {METHODS}")
     raw = session.raw
     if raw.get_montage() is None:
-        raise SourceError("Set a montage first — source localisation needs electrode positions")
+        raise SourceError("Set a montage first: source localisation needs electrode positions")
 
     work = raw.copy().pick("eeg")
     work.set_eeg_reference("average", projection=True, verbose="ERROR")
@@ -174,19 +174,23 @@ def _hot_cmap():
 
 
 def render_brain(session, *, t: float, hemi: str = "lh", view: str = "lateral",
-                 width: int = 760, height: int = 600) -> bytes:
+                 width: int = 760, height: int = 600, theme: str = "dark") -> bytes:
     import mne
+
+    from app.core.figtheme import palette
+
+    pal = palette(theme)
 
     if not _PV_OK:
         raise SourceError("pyvista is not installed")
     if getattr(session, "stc", None) is None:
-        raise SourceError("No source estimate — run 'Compute source estimate' first")
+        raise SourceError("No source estimate: run 'Compute source estimate' first")
 
     stc = session.stc
     if not (stc.times[0] - 1e-6 <= t <= stc.times[-1] + 1e-6):
         raise SourceError(
             f"cursor {t:.2f}s is outside the computed window "
-            f"[{stc.times[0]:.1f}, {stc.times[-1]:.1f}] — recompute here")
+            f"[{stc.times[0]:.1f}, {stc.times[-1]:.1f}], recompute here")
 
     tidx = int(np.argmin(np.abs(stc.times - t)))
     one = stc.copy().crop(stc.times[tidx], stc.times[tidx])
@@ -199,7 +203,6 @@ def render_brain(session, *, t: float, hemi: str = "lh", view: str = "lateral",
     import pyvista as pv
 
     pl = pv.Plotter(off_screen=True, window_size=(width, height), lighting="three lights")
-    pl.set_background("#0a0b0e")
 
     hot = _hot_cmap()
     all_pos = np.concatenate([
@@ -225,7 +228,7 @@ def render_brain(session, *, t: float, hemi: str = "lh", view: str = "lateral",
             peak_xyz = v[int(np.argmax(act))]
 
     if peak_xyz is not None:
-        pl.add_points(peak_xyz[None], color="#3f8bf0", point_size=15,
+        pl.add_points(peak_xyz[None], color=pal["accent"], point_size=15,
                       render_points_as_spheres=True)
 
     # camera
@@ -247,7 +250,8 @@ def render_brain(session, *, t: float, hemi: str = "lh", view: str = "lateral",
     pl.reset_camera(bounds=bounds)
     pl.camera.zoom(1.35)
 
-    brain_img = pl.screenshot(return_img=True)
+    # transparent, so the brain sits on whatever ground the pane has
+    brain_img = pl.screenshot(return_img=True, transparent_background=True)
     pl.close()
 
     # composite a matplotlib colorbar + time label
@@ -261,9 +265,9 @@ def render_brain(session, *, t: float, hemi: str = "lh", view: str = "lateral",
     fig.patch.set_alpha(0)
     cax = fig.add_axes([0.905, 0.30, 0.02, 0.42])
     cb = matplotlib.colorbar.ColorbarBase(cax, cmap=hot, norm=plt.Normalize(lo, hi))
-    cb.set_label(session.stc_meta.get("method", "dSPM"), color="#c9ccd2", fontsize=10)
-    cb.ax.tick_params(colors="#c9ccd2", labelsize=8)
-    fig.text(0.5, 0.045, f"time = {stc.times[tidx]:.3f} s", ha="center", color="#e8eaee", fontsize=13)
+    cb.set_label(session.stc_meta.get("method", "dSPM"), color=pal["dim"], fontsize=10)
+    cb.ax.tick_params(colors=pal["dim"], labelsize=8)
+    fig.text(0.5, 0.045, f"time = {stc.times[tidx]:.3f} s", ha="center", color=pal["fg"], fontsize=13)
     buf = io.BytesIO()
     fig.savefig(buf, format="png", transparent=True)
     plt.close(fig)
@@ -273,12 +277,12 @@ def render_brain(session, *, t: float, hemi: str = "lh", view: str = "lateral",
     final = Image.fromarray(brain_img).convert("RGBA")
     final.alpha_composite(over)
     out = io.BytesIO()
-    final.convert("RGB").save(out, format="PNG")
+    final.save(out, format="PNG")
     return out.getvalue()
 
 
 def source_timecourse(session, vertex: int | None = None) -> dict:
-    """Activation at the peak (or given) vertex over the computed window —
+    """Activation at the peak (or given) vertex over the computed window -
     the trace strip under the brain."""
     if getattr(session, "stc", None) is None:
         raise SourceError("No source estimate yet")

@@ -4,7 +4,7 @@
 
 export type Theme = "system" | "light" | "dark";
 
-const KEY = "eegvis:theme";
+const KEY = "sema:theme";
 
 export function readTheme(): Theme {
   try {

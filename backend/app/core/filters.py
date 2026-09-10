@@ -1,4 +1,4 @@
-"""Preprocessing operations — thin wrappers over Raw's in-place MNE methods.
+"""Preprocessing operations: thin wrappers over Raw's in-place MNE methods.
 
 Each function mutates the given Raw and returns nothing; the API layer is
 responsible for re-serializing raw_summary() afterwards so the client sees
@@ -41,7 +41,7 @@ def apply_reference(raw: mne.io.BaseRaw, ref_channels: str | list[str] = "averag
 
 
 def set_montage(raw: mne.io.BaseRaw, montage_name: str) -> None:
-    """Apply a standard sensor montage (e.g. 'standard_1020') by name —
+    """Apply a standard sensor montage (e.g. 'standard_1020') by name -
     needed for topomaps when the file doesn't already carry electrode
     positions.
     """

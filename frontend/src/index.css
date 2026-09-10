@@ -7,7 +7,7 @@
    an explicit choice in Settings (data-theme="light" | "dark").
    ================================================================== */
 @theme {
-  /* --- dark (default) — absolute-black ground --- */
+  /* --- dark (default): absolute-black ground --- */
   --color-bg:          #000000;
   --color-panel:       #0a0b0e;
   --color-panel-2:     #14161c;
@@ -36,7 +36,7 @@
   --text-md:  14px;
 }
 
-/* light palette — shared by the OS-light case and the explicit toggle */
+/* light palette: shared by the OS-light case and the explicit toggle */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     --color-bg:          #f5f6f8;
@@ -72,7 +72,7 @@
 
 /* ---------------------------------------------------------------- base
    NOTE: these live in @layer base so Tailwind's utility layer (which comes
-   later) still wins — an unlayered `* { padding: 0 }` beats every `px-*`. */
+   later) still wins: an unlayered `* { padding: 0 }` beats every `px-*`. */
 @layer base {
   *, ::before, ::after { box-sizing: border-box; border-color: var(--color-seam); }
 
@@ -127,7 +127,7 @@
 .is-stale { opacity: 0.5; transition: opacity 140ms ease; pointer-events: none; }
 .is-ready { opacity: 1; transition: opacity 180ms ease; }
 
-/* below the responsive floor the desktop grid can't fit — let the page scroll
+/* below the responsive floor the desktop grid can't fit, let the page scroll
    instead of clipping content into a corner (v1 audit: body{overflow:hidden}). */
 @media (max-width: 860px) {
   body { overflow: auto; }

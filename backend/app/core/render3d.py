@@ -1,9 +1,9 @@
-"""3D scalp-field rendering — a real head surface with the instantaneous EEG
+"""3D scalp-field rendering: a real head surface with the instantaneous EEG
 potential interpolated across it (Perrin spherical spline, the same maths MNE
 uses for topomaps), rendered off-screen with PyVista/VTK.
 
 This is *not* a cortical source estimate (that needs the forward + inverse
-pipeline — P6). It's the sensor-space field on the head, in 3D, at the cursor
+pipeline: P6). It's the sensor-space field on the head, in 3D, at the cursor
 time. The card upgrades to a real inflated brain once a SourceEstimate exists.
 """
 from __future__ import annotations
@@ -63,9 +63,13 @@ def _head_and_weights(pos_key: tuple) -> tuple:
 
 
 def render_field(values_uv: np.ndarray, positions: np.ndarray, *, width: int, height: int,
-                 azimuth: float = -35.0, elevation: float = 16.0) -> bytes:
+                 azimuth: float = -35.0, elevation: float = 16.0, theme: str = "dark") -> bytes:
     if not _AVAILABLE:
-        raise NotAvailable("pyvista is not installed — `pip install pyvista`")
+        raise NotAvailable("pyvista is not installed: `pip install pyvista`")
+
+    from app.core.figtheme import palette
+
+    p = palette(theme)
 
     key = tuple(np.round(positions.ravel(), 5).tolist())
     head, W, elec, centre, radius = _head_and_weights(key)
@@ -83,9 +87,12 @@ def render_field(values_uv: np.ndarray, positions: np.ndarray, *, width: int, he
         show_scalar_bar=True,
         scalar_bar_args={"title": "µV", "n_labels": 3, "vertical": True,
                          "position_x": 0.9, "position_y": 0.22, "width": 0.05, "height": 0.55,
-                         "label_font_size": 11, "title_font_size": 13, "color": "#5c616c"},
+                         "label_font_size": 11, "title_font_size": 13, "color": p["dim"]},
     )
-    pl.add_points(elec, color="#2b2b2b", point_size=5, render_points_as_spheres=True, opacity=0.85)
+    # electrode dots read against the head, not against the page, but they must
+    # not vanish into a black ground when the scalp is deep blue
+    pl.add_points(elec, color=p["fg"] if theme == "dark" else "#2b2b2b",
+                  point_size=5, render_points_as_spheres=True, opacity=0.85)
     nose = pv.Cone(center=centre + np.array([0, 1.03 * _ELLIP[1] * radius, 0.0]),
                    direction=(0, 1, 0), height=0.18 * radius, radius=0.09 * radius, resolution=24)
     pl.add_mesh(nose, color="#9aa0ab")

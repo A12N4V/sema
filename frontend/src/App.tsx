@@ -7,7 +7,7 @@ import { Settings } from "./components/shell/Settings";
 import { CommandPalette } from "./components/ops/CommandPalette";
 import { api } from "./api/client";
 import { useStore } from "./store/store";
-import { useRoute, navigate } from "./lib/router";
+import { useRoute, navigate, sessionPath, PAGES } from "./lib/router";
 
 function App() {
   const route = useRoute();
@@ -35,7 +35,7 @@ function App() {
     setLoadingSession(true);
     api.getSession(route.sessionId)
       .then((s) => setSession(s))
-      .catch(() => { toast.error("Session not found — start a new one"); navigate("/connect", true); })
+      .catch(() => { toast.error("Session not found. Start a new one"); navigate("/connect", true); })
       .finally(() => setLoadingSession(false));
   }, [route, session, setSession]);
 
@@ -48,9 +48,16 @@ function App() {
         if (s.session) s.setPaletteOpen(!s.paletteOpen);
         return;
       }
+      if ((e.metaKey || e.ctrlKey) && ["1", "2", "3"].includes(e.key)) {
+        const page = PAGES[Number(e.key) - 1];
+        if (s.session && page) { e.preventDefault(); navigate(sessionPath(s.session.session_id, page)); }
+        return;
+      }
       const el = document.activeElement;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT")) return;
       if (!s.session) return;
+
+      if (e.key === "Escape" && s.maximized) { e.preventDefault(); s.setMaximized(null); return; }
 
       if (e.key === " ") { e.preventDefault(); s.setPlaying(!s.playing); }
       else if (e.key === "ArrowRight") { e.preventDefault(); if (e.shiftKey) s.nudgeCursor(1); else s.pageWindow(1); }
@@ -62,18 +69,18 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // session evicted (TTL / dev restart) — back to Connect
+  // session evicted (TTL / dev restart): back to Connect
   useEffect(() => {
     const onLost = () => {
       if (useStore.getState().session) {
         useStore.getState().setSession(null);
         attempted.current = null;
         navigate("/connect", true);
-        toast.error("Session ended — reconnect to continue");
+        toast.error("Session ended: reconnect to continue");
       }
     };
-    window.addEventListener("eegvis:session-lost", onLost);
-    return () => window.removeEventListener("eegvis:session-lost", onLost);
+    window.addEventListener("sema:session-lost", onLost);
+    return () => window.removeEventListener("sema:session-lost", onLost);
   }, []);
 
   // playback sweep
@@ -101,7 +108,7 @@ function App() {
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-bg">
       {inWorkspace ? (
-        <Workspace onNewSession={newSession} />
+        <Workspace page={route.page} onNewSession={newSession} />
       ) : loadingSession ? (
         <div className="flex h-full flex-col items-center justify-center gap-3 text-fg-dim">
           <Loader2 className="animate-spin" />

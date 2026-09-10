@@ -30,7 +30,8 @@ def fit(session_id: str, req: ICAFitRequest) -> dict:
         return {
             "n_components": session.ica.n_components_,
             "method": req.method,
-            "components": ica_ops.component_summary(session.ica, session.raw),
+            "components": ica_ops.attach_labels(
+                ica_ops.component_summary(session.ica, session.raw), session.ica_labels),
         }
 
 
@@ -39,16 +40,17 @@ def components(session_id: str) -> dict:
     session = _get_session(session_id)
     with session.lock:
         if session.ica is None:
-            raise HTTPException(status_code=400, detail="No ICA fitted yet — call /ica/fit first")
-        return {"components": ica_ops.component_summary(session.ica, session.raw)}
+            raise HTTPException(status_code=400, detail="No ICA fitted yet, call /ica/fit first")
+        return {"components": ica_ops.attach_labels(
+            ica_ops.component_summary(session.ica, session.raw), session.ica_labels)}
 
 
 @router.get("/components/{index}/topomap")
-def component_topomap(session_id: str, index: int) -> dict:
+def component_topomap(session_id: str, index: int, theme: str = "dark") -> dict:
     session = _get_session(session_id)
     with session.lock:
         if session.ica is None:
-            raise HTTPException(status_code=400, detail="No ICA fitted yet — call /ica/fit first")
+            raise HTTPException(status_code=400, detail="No ICA fitted yet, call /ica/fit first")
         if not (0 <= index < session.ica.n_components_):
             raise HTTPException(status_code=404, detail=f"Component {index} out of range")
         if session.raw.get_montage() is None:
@@ -57,7 +59,12 @@ def component_topomap(session_id: str, index: int) -> dict:
                 detail="Raw has no montage set; call /preprocessing/montage first so topomaps have electrode positions to interpolate over",
             )
         try:
-            png_b64 = ica_ops.topomap_png_b64(session.ica, session.raw, index)
+            # through the shared renderer, so the panel gets a transparent,
+            # theme-inked PNG out of the same disk cache the precompute fills
+            from app.core.render import RenderSpec, render_b64
+
+            png_b64 = render_b64(session, RenderSpec(view="ica_component", component=index,
+                                                     width=280, height=280, theme=theme))
         except Exception as e:
             raise HTTPException(status_code=422, detail=f"Topomap rendering failed: {e}")
     return {"index": index, "png_base64": png_b64}
@@ -68,7 +75,7 @@ def sources(session_id: str, req: ICASourcesRequest) -> dict:
     session = _get_session(session_id)
     with session.lock:
         if session.ica is None:
-            raise HTTPException(status_code=400, detail="No ICA fitted yet — call /ica/fit first")
+            raise HTTPException(status_code=400, detail="No ICA fitted yet, call /ica/fit first")
         return ica_ops.sources_window(session.ica, session.raw, req.start, req.duration, req.max_points)
 
 
@@ -77,7 +84,7 @@ def component_psd(session_id: str, index: int) -> dict:
     session = _get_session(session_id)
     with session.lock:
         if session.ica is None:
-            raise HTTPException(status_code=400, detail="No ICA fitted yet — call /ica/fit first")
+            raise HTTPException(status_code=400, detail="No ICA fitted yet, call /ica/fit first")
         if not (0 <= index < session.ica.n_components_):
             raise HTTPException(status_code=404, detail=f"Component {index} out of range")
         return ica_ops.component_psd(session.ica, session.raw, index)
@@ -87,16 +94,17 @@ def component_psd(session_id: str, index: int) -> dict:
 def exclude(session_id: str, req: ICAExcludeRequest) -> dict:
     session = _get_session(session_id)
     if session.ica is None:
-        raise HTTPException(status_code=400, detail="No ICA fitted yet — call /ica/fit first")
+        raise HTTPException(status_code=400, detail="No ICA fitted yet, call /ica/fit first")
     session.set_ica_exclude(req.exclude)
     with session.lock:
-        return {"components": ica_ops.component_summary(session.ica, session.raw)}
+        return {"components": ica_ops.attach_labels(
+            ica_ops.component_summary(session.ica, session.raw), session.ica_labels)}
 
 
 @router.post("/apply")
 def apply(session_id: str) -> dict:
     session = _get_session(session_id)
     if session.ica is None:
-        raise HTTPException(status_code=400, detail="No ICA fitted yet — call /ica/fit first")
+        raise HTTPException(status_code=400, detail="No ICA fitted yet, call /ica/fit first")
     session.apply_ica()
     return {"applied": True, "excluded": session.ica.exclude}

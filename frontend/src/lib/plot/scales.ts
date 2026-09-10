@@ -78,3 +78,25 @@ export function heat(t: number, panelHex: string, accentHex: string, warnHex: st
   if (x < 0.82) return mix(accent, warn, (x - 0.5) / 0.32);
   return mix(warn, fg, (x - 0.82) / 0.18);
 }
+
+
+/**
+ * Diverging ramp for a signed quantity, centred at t = 0.5, in theme colours.
+ * (The older `diverging` above takes t in [-1, 1] and hard-codes its colours;
+ * this one reads the palette, so it stays right in both themes.)
+ *
+ * A µV deflection or a dB change against baseline has a meaningful zero and two
+ * directions. Drawing it on the sequential `heat` ramp puts zero somewhere in
+ * the middle of the blues and makes "no change" look like a value, which is how
+ * an ERP image ends up reading as a wall of blue. Cool below, near-transparent
+ * at zero, warm above, so the eye finds zero without a legend.
+ */
+export function divergingTheme(t: number, panelHex: string, coolHex: string, warmHex: string): RGB {
+  const x = Math.max(0, Math.min(1, t));
+  const panel = hexToRgb(panelHex);
+  const cool = hexToRgb(coolHex);
+  const warm = hexToRgb(warmHex);
+  // eased so small deviations still separate from the neutral middle
+  const d = Math.pow(Math.abs(x - 0.5) * 2, 0.7);
+  return x < 0.5 ? mix(panel, cool, d) : mix(panel, warm, d);
+}

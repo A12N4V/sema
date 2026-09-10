@@ -1,7 +1,7 @@
 import { useStore } from "./store";
 
 /**
- * A string that changes exactly when the *signal itself* changes — filter
+ * A string that changes exactly when the *signal itself* changes, filter
  * bounds, sample rate, sample count, bad-channel set. Panels put it in their
  * fetch deps so they refetch when the underlying data moves, but not on
  * unrelated session edits (e.g. montage name).

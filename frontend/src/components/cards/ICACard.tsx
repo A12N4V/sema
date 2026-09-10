@@ -22,7 +22,7 @@ export function ICACard() {
     api.listOps("raw").then((r) => setFitOp(r.operations.find((o) => o.id === "fit_ica") ?? null)).catch(() => {});
   }, []);
 
-  if (!session) return <Panel title="ICA"><div /></Panel>;
+  if (!session) return <Panel paneId="ica" title="ICA"><div /></Panel>;
 
   const hasMontage = session.has_montage;
   const filtered = (session.highpass ?? 0) >= 1;
@@ -53,7 +53,7 @@ export function ICACard() {
       done: filtered,
       body: ({ next }) => (
         <div className="flex flex-col gap-2 text-xs text-fg-dim">
-          <span>ICA is unstable on slow drifts — filter first.</span>
+          <span>ICA is unstable on slow drifts, filter first.</span>
           <button
             className="self-start rounded-xs border border-accent/40 bg-accent/10 px-2.5 py-1 text-accent hover:bg-accent/20"
             onClick={async () => { setBusy(true); await runOp("filter", { l_freq: 1.0, h_freq: 40.0 }, "Filtered 1–40 Hz"); setBusy(false); next(); }}
@@ -82,7 +82,7 @@ export function ICACard() {
   ];
 
   return (
-    <Panel title="ICA — setup">
+    <Panel paneId="ica" title="ICA: setup">
       <div className="flex h-full items-start justify-center overflow-auto p-4">
         <Wizard title="Prepare for ICA" steps={steps} busy={busy} onClose={() => useStore.getState().setActiveContainer("raw")} />
       </div>

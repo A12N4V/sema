@@ -3,12 +3,12 @@ solutions, TFR, permutation stats, dataset downloads).
 
 Why threads, not a process pool: the session's live MNE objects (``Raw``,
 ``ICA``) sit in the process-wide session dict. A ``ThreadPoolExecutor`` shares
-that memory directly — no pickling a 100 MB ``Raw`` to a child and back. The
+that memory directly: no pickling a 100 MB ``Raw`` to a child and back. The
 numeric core (BLAS / numpy) releases the GIL, so a fit still runs off the
 request thread and the API stays responsive.
 
 The request that starts a long op returns ``202 {job_id}`` immediately; the
-client polls ``GET /api/jobs/{id}``. See docs/BUILD_PLAN_V2.md P0.3.
+client polls ``GET /api/jobs/{id}``. See docs/ARCHITECTURE.md.
 """
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ class Job:
 
 class JobManager:
     def __init__(self, max_workers: int = MAX_WORKERS) -> None:
-        self._pool = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="eegvis-job")
+        self._pool = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="sema-job")
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
 

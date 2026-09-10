@@ -18,7 +18,7 @@ import numpy as np
 def band_power_topomap_png_b64(raw: mne.io.BaseRaw, values: list[float], ch_names: list[str]) -> str:
     """Render a single scalp topomap from one value per channel.
 
-    Requires the Raw to have a montage set (see filters.set_montage) —
+    Requires the Raw to have a montage set (see filters.set_montage) -
     without sensor positions there's nothing to interpolate over.
     """
     if raw.get_montage() is None:

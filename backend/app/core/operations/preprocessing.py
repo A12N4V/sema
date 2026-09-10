@@ -69,7 +69,7 @@ register(Operation(
 
 
 class AnnotateAmplitudeParams(OpParams):
-    peak_uv: float = Field(150.0, gt=0, description="Peak-to-peak threshold (µV) — spans above this become BAD")
+    peak_uv: float = Field(150.0, gt=0, description="Peak-to-peak threshold (µV), spans above this become BAD")
     flat_uv: Optional[float] = Field(None, description="Flat-signal threshold (µV); null = skip flat detection")
 
 
