@@ -73,7 +73,10 @@ TASKS: dict[str, dict] = {
                  "screenshots in bench/out/ux/. Known: the channels table overlaps controls on phone "
                  "and tablet; epochs/evoked pages shift layout by ~0.3-0.37 CLS on load (reserve space "
                  "for figures with fixed aspect boxes / skeletons); some controls sit off-screen on "
-                 "phone. Fix the layout, don't hide content. Add e2e assertions in "
+                 "phone. Fix the layout, don't hide content. Lessons from earlier attempts: global "
+                 "rules (min-size on every button, raising the smallest text size) made dense rows "
+                 "(channel table, ribbon, container strip) collide and were rejected; fix specific "
+                 "components and check ux_overlaps per page in ux_detail.json after every change. Add e2e assertions in "
                  "frontend/e2e/ux.spec.ts for what you fix.",
     },
     "ops": {
@@ -88,7 +91,11 @@ TASKS: dict[str, dict] = {
         "brief": "Add meaningful tests where coverage is thin. Backend: services/persistence.py, "
                  "services/jobs.py, core/autoderive.py, core/filters.py, api/export.py error paths. "
                  "Frontend: lib/derivation.ts, lib/ops.ts, store edge cases, components/ops/ParamForm. "
-                 "Do NOT change production code. Each test must assert real behaviour, not just 'no crash'.",
+                 "Do NOT change production code. Each test must assert real behaviour, not just 'no crash'. "
+                 "A previous attempt was rejected for 4 failing tests (filters reference-to-one-channel, "
+                 "job manager progress/sweep timing, persistence best-effort save) and an unused import "
+                 "that broke tsc: run each new test file and `npx tsc --noEmit -p tsconfig.app.json` "
+                 "before committing; if a test exposes a real bug, mark it xfail with the reason.",
     },
 }
 
