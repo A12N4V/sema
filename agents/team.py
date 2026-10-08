@@ -3,7 +3,8 @@ GLM via OpenRouter. Each agent works in its own git worktree; its change is kept
 only if the gate is green and bench/score.py says it helped.
 
     python3 agents/team.py setup                  # one-time: private mcode profile + OpenRouter provider
-    python3 agents/team.py wave [--only a,b]      # run the TASKS below in parallel, merge winners
+    python3 agents/team.py wave [--only a,b]      # run the TASKS below in parallel; winners become candidates
+    python3 agents/team.py merge <branch> <task>  # merge a reviewed candidate if it is still strictly better
     python3 agents/team.py loop --iters 10        # autoresearch: one hypothesis at a time, keep/discard
 
 Everything lands on the branch `agents/integration` (never main). Every attempt
@@ -193,7 +194,35 @@ then `git add -A && git commit -m "<what and why>"`. Reply with a 3-line summary
 """
 
 
+MIN_CREDIT = float(os.environ.get("SEMA_AGENT_MIN_CREDIT", "0.5"))
+
+
+def credit_remaining() -> float | None:
+    """OpenRouter key's remaining limit in USD (None = unlimited or unknown)."""
+    import urllib.request
+    req = urllib.request.Request("https://openrouter.ai/api/v1/key",
+                                 headers={"Authorization": f"Bearer {openrouter_key()}"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return json.load(r)["data"].get("limit_remaining")
+    except Exception:
+        return None
+
+
 def run_agent(name: str, path: Path, text: str, run_dir: Path) -> int:
+    """Run mcode, retrying (with backoff) when the provider connection drops
+    before the agent did anything; an outage is not an attempt."""
+    for i in range(3):
+        rc = _run_agent_once(name, path, text, run_dir)
+        transient = "Connection error" in (run_dir / "transcript.txt").read_text()[-2000:]
+        if rc == 0 or not transient or sh(["git", "status", "--porcelain"], cwd=path):
+            return rc
+        print(f"[{name}] provider connection error; retry {i + 1}/2 in {60 * (i + 1)}s", flush=True)
+        time.sleep(60 * (i + 1))
+    return rc
+
+
+def _run_agent_once(name: str, path: Path, text: str, run_dir: Path) -> int:
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "prompt.md").write_text(text)
     with open(run_dir / "transcript.txt", "w") as log:
@@ -244,6 +273,8 @@ def attempt(name: str, task: dict, base_ref: str, base_score: dict, history: str
     free_gb = shutil.disk_usage(ROOT).free / 1e9
     if free_gb < 6:  # a full disk wedges every process on the machine, not just this loop
         raise RuntimeError(f"only {free_gb:.1f} GB free; refusing to start {name}")
+    if (credit := credit_remaining()) is not None and credit < MIN_CREDIT:
+        raise RuntimeError(f"OpenRouter credit ${credit:.2f} < ${MIN_CREDIT}; refusing to start {name}")
     stamp = f"{dt.datetime.now():%m%d-%H%M%S}-{name}"
     run_dir = STATE / "runs" / stamp
     path = make_worktree(stamp, base_ref)
@@ -270,7 +301,11 @@ def attempt(name: str, task: dict, base_ref: str, base_score: dict, history: str
         drop_worktree(path)  # branch survives for inspection; the checkout does not
 
 
-def merge_into_integration(branch: str) -> bool:
+def merge_into_integration(branch: str, task: dict | None = None, current: dict | None = None) -> bool:
+    """Merge only if, measured after the merge against integration as it is
+    *now*: the gate is green, test counts didn't drop, the task's focus metrics
+    still improve, nothing else regresses, and the overall score improves."""
+    current = current or score_ref(INTEGRATION)
     path = make_worktree("_integrate", INTEGRATION)
     try:
         sh(["git", "checkout", "-q", "-B", "_integrate_tmp"], cwd=path)
@@ -281,14 +316,28 @@ def merge_into_integration(branch: str) -> bool:
         if not res["gate"].get("ok"):
             print(f"{branch} breaks the gate after merge; skipped")
             return False
+        for k in ("backend_tests", "frontend_tests", "e2e_tests"):
+            if res["gate"].get(k, 0) < current["gate"].get(k, 0):
+                print(f"{branch}: {k} dropped {current['gate'][k]} -> {res['gate'].get(k)}; skipped")
+                return False
+        if task is not None:
+            ok, why = judge(task, current, res)
+            if not ok:
+                print(f"{branch}: not better after merge ({why}); skipped")
+                return False
+        if task is None or task["focus"] != "tests":
+            if res["score"] >= current["score"]:
+                print(f"{branch}: overall score {res['score']} not better than {current['score']}; skipped")
+                return False
         sh(["git", "branch", "-f", INTEGRATION, "HEAD"], cwd=path)
+        print(f"{branch}: merged, score {current['score']} -> {res['score']}", flush=True)
         return True
     finally:
         drop_worktree(path)
         sh(["git", "branch", "-D", "_integrate_tmp"], check=False)
 
 
-def wave(only: list[str] | None) -> None:
+def wave(only: list[str] | None, merge: bool = False) -> None:
     ensure_integration()
     base = score_ref(INTEGRATION)
     tasks = {k: v for k, v in TASKS.items() if not only or k in only}
@@ -302,9 +351,12 @@ def wave(only: list[str] | None) -> None:
                 print(f"[{futs[f]}] crashed: {e}", flush=True)
                 continue
             if kept:
-                winners.append(branch)
-    for b in winners:
-        print(f"merge {b}: {'ok' if merge_into_integration(b) else 'skipped'}")
+                winners.append((branch, tasks[futs[f]]))
+    if not merge:
+        print("candidates (review, then `team.py merge <branch> <task>`):", [b for b, _ in winners])
+        return
+    for b, t in winners:
+        merge_into_integration(b, t)
 
 
 def score_ref(ref: str) -> dict:
@@ -326,7 +378,7 @@ def loop(iters: int) -> None:
         history = ("\n## Previous attempts (results.tsv) — do not repeat a discarded idea\n```\n"
                    + (RESULTS.read_text()[-4000:] if RESULTS.exists() else "none") + "\n```\n")
         kept, branch = attempt(name, TASKS[name], INTEGRATION, base, history)
-        if kept and merge_into_integration(branch):
+        if kept and merge_into_integration(branch, TASKS[name], base):
             base = score_ref(INTEGRATION)
             print(f"iteration {i + 1}: integration score now {base['score']}")
 
@@ -336,12 +388,16 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("setup")
     w = sub.add_parser("wave"); w.add_argument("--only", default="")
+    w.add_argument("--merge", action="store_true", help="merge winners without review")
+    mg = sub.add_parser("merge"); mg.add_argument("branch"); mg.add_argument("task")
     lp = sub.add_parser("loop"); lp.add_argument("--iters", type=int, default=10)
     a = ap.parse_args()
     if a.cmd == "setup":
         setup()
     elif a.cmd == "wave":
-        wave([s for s in a.only.split(",") if s] or None)
+        wave([s for s in a.only.split(",") if s] or None, a.merge)
+    elif a.cmd == "merge":
+        merge_into_integration(a.branch, TASKS[a.task])
     else:
         loop(a.iters)
 
