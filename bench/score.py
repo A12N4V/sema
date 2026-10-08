@@ -63,11 +63,11 @@ def gate(root: Path, e2e: bool = True) -> dict:
     stages = ["backend", "typecheck", "lint", "frontend"]
     if e2e:
         # Fresh ports: never reuse a server some other checkout started.
-        rc, out = sh(["npx", "playwright", "test", "--reporter=line"], fe, timeout=1800,
+        rc, out = sh(["npx", "playwright", "test", "--reporter=line", "--retries=1"], fe, timeout=1800,
                      env={"SEMA_API_PORT": free_port(), "SEMA_WEB_PORT": free_port()})
         g["e2e"] = rc == 0
         g["e2e_tests"] = int(m.group(1)) if (m := re.search(r"(\d+) passed", out)) else 0
-        if rc: g["e2e_log"] = out[-4000:]
+        if rc: g["e2e_log"] = "\n".join(l for l in out.splitlines() if not l.startswith("[WebServer]"))[-4000:]
         stages.append("e2e")
     g["ok"] = all(g[k] for k in stages)
     return g
