@@ -6,6 +6,7 @@ only if the gate is green and bench/score.py says it helped.
     python3 agents/team.py wave [--only a,b]      # run the TASKS below in parallel; winners become candidates
     python3 agents/team.py merge <branch> <task>  # merge a reviewed candidate if it is still strictly better
     python3 agents/team.py loop --iters 10        # autoresearch: one hypothesis at a time, keep/discard
+    python3 agents/team.py watch                  # tail every agent's tool calls, messages and verdicts live
 
 Everything lands on the branch `agents/integration` (never main). Every attempt
 is appended to agents/results.tsv; transcripts and scores go to agents/.state/runs/.
@@ -168,8 +169,16 @@ def drop_worktree(path: Path) -> None:
 
 
 def score(path: Path) -> dict:
+    tag = path.name if path != ROOT else "integration"
+    if SCORE_LOCK.locked():
+        say(tag, "waiting for the scorer", "\x1b[2m")
     with SCORE_LOCK:
-        return _score(path)
+        say(tag, "scoring: gate + benches", "\x1b[33m")
+        t0 = time.time()
+        res = _score(path)
+        say(tag, f"scored in {(time.time() - t0) / 60:.0f}m · gate {'green' if res['gate'].get('ok') else 'RED'} · "
+                 f"score {res.get('score')}", "\x1b[33m")
+        return res
 
 
 def _score(path: Path) -> dict:
@@ -224,22 +233,77 @@ def run_agent(name: str, path: Path, text: str, run_dir: Path) -> int:
         transient = "Connection error" in (run_dir / "transcript.txt").read_text()[-2000:]
         if rc == 0 or not transient or sh(["git", "status", "--porcelain"], cwd=path):
             return rc
-        print(f"[{name}] provider connection error; retry {i + 1}/2 in {60 * (i + 1)}s", flush=True)
+        say(name, f"provider connection error; retry {i + 1}/2 in {60 * (i + 1)}s", "\x1b[31m")
         time.sleep(60 * (i + 1))
     return rc
+
+
+FEED = STATE / "feed.log"
+_feed_lock = threading.Lock()
+_TINT = ["\x1b[36m", "\x1b[35m", "\x1b[33m", "\x1b[32m", "\x1b[34m", "\x1b[91m"]
+
+
+def say(tag: str, msg: str, colour: str = "") -> None:
+    """One line to stdout and to agents/.state/feed.log (`team.py watch` tails it)."""
+    ts = dt.datetime.now().strftime("%H:%M:%S")
+    tint = _TINT[sum(map(ord, tag)) % len(_TINT)]
+    line = f"\x1b[2m{ts}\x1b[0m {tint}{tag:<10}\x1b[0m {colour}{msg}\x1b[0m"
+    with _feed_lock:
+        print(line, flush=True)
+        STATE.mkdir(parents=True, exist_ok=True)
+        with FEED.open("a") as f:
+            f.write(line + "\n")
+
+
+def _tool_line(tc: dict) -> str:
+    inp = tc.get("input") or {}
+    for key in ("command", "path", "file_path", "pattern", "query"):
+        if inp.get(key):
+            return f"{tc.get('name')} {str(inp[key]).splitlines()[0][:110]}"
+    return str(tc.get("name"))
 
 
 def _run_agent_once(name: str, path: Path, text: str, run_dir: Path) -> int:
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "prompt.md").write_text(text)
+    say(name, f"start · {path.name} · ≤{MAX_STEPS} steps · {TIMEOUT_MIN}m", "\x1b[33m")
+    proc = subprocess.Popen(
+        [MCODE, "exec", "--cwd", str(path), "--prompt-mode", "coding", "--permission", "full",
+         "--max-steps", str(MAX_STEPS), "--timeout", f"{TIMEOUT_MIN}m", "--output-format", "stream-json",
+         "--input", "-", "-o", str(run_dir / "summary.txt")],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        env={**mcode_env(), "NO_COLOR": "1"})
+    killer = threading.Timer(TIMEOUT_MIN * 60 + 120, proc.kill)
+    killer.start()
+    proc.stdin.write(text)
+    proc.stdin.close()
+    tools = 0
+    # transcript.txt keeps the raw event stream; the feed gets one readable line per event.
     with open(run_dir / "transcript.txt", "w") as log:
-        p = subprocess.run(
-            [MCODE, "exec", "--cwd", str(path), "--prompt-mode", "coding", "--permission", "full",
-             "--max-steps", str(MAX_STEPS), "--timeout", f"{TIMEOUT_MIN}m", "--input", "-",
-             "-o", str(run_dir / "summary.txt")],
-            input=text, text=True, stdout=log, stderr=subprocess.STDOUT, env=mcode_env(),
-            timeout=TIMEOUT_MIN * 60 + 120)
-    return p.returncode
+        for line in proc.stdout:
+            log.write(line)
+            log.flush()
+            try:
+                e = json.loads(line)
+            except Exception:
+                if line.strip():
+                    say(name, line.strip()[:140], "\x1b[2m")
+                continue
+            it = e.get("item") or {}
+            if e.get("type") == "item.completed" and it.get("type") == "tool_call":
+                tc = it.get("toolCall", {})
+                tools += 1
+                ok = tc.get("status") == 2
+                say(name, ("✓ " if ok else "✗ ") + _tool_line(tc), "\x1b[2m" if ok else "\x1b[31m")
+            elif e.get("type") == "item.completed" and it.get("type") == "agent_message":
+                first = (it.get("content") or "").strip().splitlines()
+                if first:
+                    say(name, "» " + first[0][:150])
+            elif e.get("type") == "exec.completed":
+                say(name, f"done · {(e.get('result') or {}).get('status', '?')} · {tools} tool calls", "\x1b[33m")
+    rc = proc.wait()
+    killer.cancel()
+    return rc
 
 
 def judge(task: dict, base: dict, new: dict) -> tuple[bool, str]:
@@ -302,7 +366,7 @@ def attempt(name: str, task: dict, base_ref: str, base_score: dict, history: str
         (run_dir / "score.json").write_text(json.dumps(new, indent=1))
         sha = sh(["git", "rev-parse", "--short", "HEAD"], cwd=path)
         log_result(name, sha, kept, f"{why} ({(time.time() - t0) / 60:.0f}m)", new)
-        print(f"[{name}] {'KEEP' if kept else 'discard'}: {why}", flush=True)
+        say(name, f"{'KEEP' if kept else 'discard'}: {why}", "\x1b[32m" if kept else "\x1b[31m")
         return kept, f"agents/{stamp}"
     finally:
         drop_worktree(path)  # branch survives for inspection; the checkout does not
@@ -317,30 +381,30 @@ def merge_into_integration(branch: str, task: dict | None = None, current: dict 
     try:
         sh(["git", "checkout", "-q", "-B", "_integrate_tmp"], cwd=path)
         if subprocess.run(["git", "merge", "--no-edit", "-q", branch], cwd=path).returncode:
-            print(f"merge conflict on {branch}; skipped")
+            say("merge", f"merge conflict on {branch}; skipped")
             return False
         res = score(path)
         (STATE / "runs").mkdir(parents=True, exist_ok=True)
         (STATE / "runs" / f"merge-{branch.replace('/', '_')}.json").write_text(json.dumps(res, indent=1))
         if not res["gate"].get("ok"):
             failed = [k for k in ("backend", "typecheck", "lint", "frontend", "e2e") if not res["gate"].get(k, True)]
-            print(f"{branch} breaks the gate after merge ({','.join(failed)}); skipped")
+            say("merge", f"{branch} breaks the gate after merge ({','.join(failed)}); skipped")
             return False
         for k in ("backend_tests", "frontend_tests", "e2e_tests"):
             if res["gate"].get(k, 0) < current["gate"].get(k, 0):
-                print(f"{branch}: {k} dropped {current['gate'][k]} -> {res['gate'].get(k)}; skipped")
+                say("merge", f"{branch}: {k} dropped {current['gate'][k]} -> {res['gate'].get(k)}; skipped")
                 return False
         if task is not None:
             ok, why = judge(task, current, res)
             if not ok:
-                print(f"{branch}: not better after merge ({why}); skipped")
+                say("merge", f"{branch}: not better after merge ({why}); skipped")
                 return False
         if task is None or task["focus"] != "tests":
             if res["score"] >= current["score"]:
-                print(f"{branch}: overall score {res['score']} not better than {current['score']}; skipped")
+                say("merge", f"{branch}: overall score {res['score']} not better than {current['score']}; skipped")
                 return False
         sh(["git", "branch", "-f", INTEGRATION, "HEAD"], cwd=path)
-        print(f"{branch}: merged, score {current['score']} -> {res['score']}", flush=True)
+        say("merge", f"{branch}: merged, score {current['score']} -> {res['score']}")
         return True
     finally:
         drop_worktree(path)
@@ -358,7 +422,7 @@ def wave(only: list[str] | None, merge: bool = False) -> None:
             try:
                 kept, branch = f.result()
             except Exception as e:  # one broken agent must not sink the wave
-                print(f"[{futs[f]}] crashed: {e}", flush=True)
+                say(futs[f], f"crashed: {e}", "\x1b[31m")
                 continue
             if kept:
                 winners.append((branch, tasks[futs[f]]))
@@ -401,7 +465,11 @@ def main() -> None:
     w.add_argument("--merge", action="store_true", help="merge winners without review")
     mg = sub.add_parser("merge"); mg.add_argument("branch"); mg.add_argument("task")
     lp = sub.add_parser("loop"); lp.add_argument("--iters", type=int, default=10)
+    sub.add_parser("watch", help="follow every agent's activity live")
     a = ap.parse_args()
+    if a.cmd == "watch":
+        FEED.touch()
+        os.execvp("tail", ["tail", "-n", "60", "-F", str(FEED)])
     if a.cmd == "setup":
         setup()
     elif a.cmd == "wave":
