@@ -320,8 +320,11 @@ def merge_into_integration(branch: str, task: dict | None = None, current: dict 
             print(f"merge conflict on {branch}; skipped")
             return False
         res = score(path)
+        (STATE / "runs").mkdir(parents=True, exist_ok=True)
+        (STATE / "runs" / f"merge-{branch.replace('/', '_')}.json").write_text(json.dumps(res, indent=1))
         if not res["gate"].get("ok"):
-            print(f"{branch} breaks the gate after merge; skipped")
+            failed = [k for k in ("backend", "typecheck", "lint", "frontend", "e2e") if not res["gate"].get(k, True)]
+            print(f"{branch} breaks the gate after merge ({','.join(failed)}); skipped")
             return False
         for k in ("backend_tests", "frontend_tests", "e2e_tests"):
             if res["gate"].get(k, 0) < current["gate"].get(k, 0):
