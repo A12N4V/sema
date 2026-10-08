@@ -18,3 +18,8 @@ frontend/test-results/
 frontend/playwright-report/
 frontend/blob-report/
 .claude/
+
+# Agent team / autoresearch runtime state
+agents/.state/
+agents/.wt/
+bench/out/
