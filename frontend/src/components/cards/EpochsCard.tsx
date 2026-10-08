@@ -153,7 +153,7 @@ export function EpochsCard() {
             onChange={(e) => setFocusChannel(e.target.value)}
             aria-label="Channel for the ERP image"
             className="mono ml-auto rounded-xs border border-seam bg-bg px-1.5 py-0.5 text-2xs
-                       outline-none focus:border-accent"
+                       focus:border-accent"
           >
             {(s?.channels ?? []).map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -200,7 +200,7 @@ function Field({ label, value, onChange, suffix, width = "4ch" }: {
           onChange={(e) => onChange(e.target.value)}
           inputMode="decimal"
           style={{ width }}
-          className="mono bg-transparent text-xs outline-none"
+          className="mono bg-transparent text-xs"
         />
         {suffix && <span className="text-2xs text-fg-faint">{suffix}</span>}
       </span>

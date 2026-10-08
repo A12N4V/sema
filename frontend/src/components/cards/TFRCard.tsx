@@ -170,7 +170,7 @@ export function TFRCard() {
             onChange={(e) => setFocusChannel(e.target.value || null)}
             aria-label="Channel for the spectrogram"
             className="mono rounded-xs border border-seam bg-bg px-1.5 py-0.5 text-2xs
-                       outline-none focus:border-accent"
+                       focus:border-accent"
           >
             <option value="">all channels</option>
             {data.channels.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -235,7 +235,7 @@ function Field({ label, value, onChange, suffix }: {
       <span className="flex items-baseline gap-1 rounded-xs border border-seam bg-bg px-1.5 py-1
                        focus-within:border-accent">
         <input value={value} onChange={(e) => onChange(e.target.value)} inputMode="decimal"
-               className="mono w-[4ch] bg-transparent text-xs outline-none" />
+               className="mono w-[4ch] bg-transparent text-xs" />
         {suffix && <span className="text-2xs text-fg-faint">{suffix}</span>}
       </span>
     </label>

@@ -112,7 +112,7 @@ export function ChannelsTable() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="filter"
               aria-label="Filter channels"
-              className="mono w-[9ch] bg-transparent text-2xs outline-none"
+              className="mono w-[9ch] bg-transparent text-2xs"
             />
           </label>
           <button
@@ -168,7 +168,7 @@ export function ChannelsTable() {
                         if (e.key === "Enter") commitRename(r.name);
                         if (e.key === "Escape") setRenaming(null);
                       }}
-                      className="w-[12ch] rounded-xs border border-accent bg-bg px-1 outline-none"
+                      className="w-[12ch] rounded-xs border border-accent bg-bg px-1"
                     />
                   ) : (
                     <button
@@ -191,7 +191,7 @@ export function ChannelsTable() {
                     onChange={(e) => void act(() => runOp("set_channel_types",
                       { mapping: { [r.name]: e.target.value } }, `${r.name} is now ${e.target.value}`))}
                     className="cursor-pointer rounded-xs border border-transparent bg-transparent text-2xs
-                               text-fg-dim outline-none hover:border-seam focus:border-accent"
+                               text-fg-dim hover:border-seam focus:border-accent"
                   >
                     {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                     {!TYPES.includes(r.type) && <option value={r.type}>{r.type}</option>}

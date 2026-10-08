@@ -11,7 +11,11 @@ import { defineConfig, devices } from "@playwright/test";
  * overflowing at 375px. Slower, so it runs before a commit rather than on save.
  *
  * Both servers are reused if already running, so `./dev.sh` and this can share.
+ * SEMA_API_PORT / SEMA_WEB_PORT move both, so an agent worktree (bench/score.py)
+ * tests its own code instead of reusing the main checkout's servers.
  */
+const API_PORT = process.env.SEMA_API_PORT ?? "8123";
+const WEB_PORT = process.env.SEMA_WEB_PORT ?? "5173";
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,        // one backend, one session store
@@ -20,7 +24,7 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   reporter: process.env.CI ? "github" : [["list"]],
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: `http://localhost:${WEB_PORT}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -35,15 +39,16 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "./.venv/bin/python -m uvicorn app.main:app --port 8123",
+      command: `./.venv/bin/python -m uvicorn app.main:app --port ${API_PORT}`,
       cwd: "../backend",
-      url: "http://localhost:8123/api/health",
+      url: `http://localhost:${API_PORT}/api/health`,
       reuseExistingServer: true,
       timeout: 90_000,
     },
     {
       command: "npm run dev",
-      url: "http://localhost:5173",
+      url: `http://localhost:${WEB_PORT}`,
+      env: { SEMA_API_URL: `http://localhost:${API_PORT}`, SEMA_WEB_PORT: WEB_PORT },
       reuseExistingServer: true,
       timeout: 90_000,
     },

@@ -10,7 +10,7 @@ import {
 export type { JsonSchema } from "../../lib/schemaForm";
 
 const field =
-  "w-full rounded-xs border border-seam bg-bg px-2 py-1.5 text-sm text-fg outline-none transition-colors focus:border-accent";
+  "w-full rounded-xs border border-seam bg-bg px-2 py-1.5 text-sm text-fg transition-colors focus:border-accent";
 
 export function ParamForm({
   schema,

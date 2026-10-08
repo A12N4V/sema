@@ -56,6 +56,32 @@ TASKS: dict[str, dict] = {
                  "button an aria-label. Move hard-coded hex colours and inline styles to theme tokens "
                  "(lib/theme.ts, index.css). Do not change behaviour; vitest must stay green.",
     },
+    "a11y": {
+        "focus": [r"^ux_axe_", r"^ux_small_targets$", r"^ux_tiny_text$"],
+        "brief": "Accessibility, measured in a real browser on every page at phone/tablet/desktop "
+                 "(bench/ux_bench.mjs; per-page detail in bench/out/ux_detail.json, screenshots in "
+                 "bench/out/ux/). Biggest wins: colour-contrast (raise faint text tokens in "
+                 "frontend/src/index.css / lib/theme.ts until WCAG AA 4.5:1, keep the look), page "
+                 "landmarks (one <main>, one <h1> per page, labelled regions), 24px minimum hit areas "
+                 "for icon buttons (padding, not bigger icons), text no smaller than 11px.",
+    },
+    "layout": {
+        "focus": [r"^ux_overlaps$", r"^ux_cls$", r"^ux_offscreen_ctrls$", r"^ux_clipped_text$", r"^ux_overflow_px$"],
+        "brief": "Layout quality across phone (390), tablet (820) and desktop (1440); see "
+                 "bench/out/ux_detail.json for which page/viewport is worst and look at the "
+                 "screenshots in bench/out/ux/. Known: the channels table overlaps controls on phone "
+                 "and tablet; epochs/evoked pages shift layout by ~0.3-0.37 CLS on load (reserve space "
+                 "for figures with fixed aspect boxes / skeletons); some controls sit off-screen on "
+                 "phone. Fix the layout, don't hide content. Add e2e assertions in "
+                 "frontend/e2e/ux.spec.ts for what you fix.",
+    },
+    "ops": {
+        "focus": [r"^op_.*_ms$", r"^ops_total_ms$"],
+        "brief": "Make the registered operations faster end to end (bench/ops_bench.py; slowest now: "
+                 "detect_bad_channels ~345ms, label_ica, fit_ica, annotate_muscle, filter). Look at "
+                 "what Sema does around the MNE call (copies of Raw, ledger snapshots, autoderive, "
+                 "precompute invalidation) before touching the MNE call itself. Results must be identical.",
+    },
     "tests": {
         "focus": "tests",
         "brief": "Add meaningful tests where coverage is thin. Backend: services/persistence.py, "
@@ -122,7 +148,8 @@ def _make_worktree(name: str, base: str) -> Path:
     sh(["git", "worktree", "add", "-B", branch, str(path), base])
     # Share the heavy, gitignored environments instead of reinstalling per agent.
     for rel in ("backend/.venv", "frontend/node_modules"):
-        (path / rel).symlink_to(ROOT / rel)
+        if not (path / rel).exists():
+            (path / rel).symlink_to(ROOT / rel)
     return path
 
 
@@ -196,7 +223,7 @@ def judge(task: dict, base: dict, new: dict) -> tuple[bool, str]:
         r = (nm[k] + 1e-9) / (b + 1e-9) if b else (1.0 if nm[k] == 0 else 2.0)
         if is_focus(k):
             gains.append(r)
-        elif r > NOISE["ms" if k.endswith("_ms") else "other"]:
+        elif r > NOISE["ms" if k.endswith("_ms") or k == "ux_cls" else "other"]:
             regress.append(f"{k}x{r:.2f}")
     g = (sum(gains) / len(gains)) if gains else 1.0
     if regress:

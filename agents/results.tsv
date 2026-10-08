@@ -1,0 +1,5 @@
+time	agent	commit	status	score	backend_tests	frontend_tests	note
+2026-10-08 11:18	wire	ee393a9	discard	0.7365	154	273	regressed overview_msx1.50 field_msx2.12 (11m)
+2026-10-08 11:19	icons	e1865d5	discard	0.6376	154	273	regressed window_5s_msx1.70 overview_msx1.49 field_msx1.58 psd_msx1.66 (12m)
+2026-10-08 11:19	tests	41693cc	discard	0.8129	178	298	gate failed: backend,typecheck (12m)
+2026-10-08 11:24	wire(rejudge)	ee393a9	keep	0.6791	154	273	focus mean ratio 0.347

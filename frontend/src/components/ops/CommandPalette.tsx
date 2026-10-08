@@ -76,7 +76,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
       <div className="pop flex max-h-[80vh] w-[560px] max-w-[92vw] flex-col overflow-hidden" onMouseDown={(e) => e.stopPropagation()}>
         <header className="flex items-center gap-2 border-b border-seam px-3 py-2">
           {selected ? (
-            <button onClick={() => setSelected(null)} className="rounded-xs p-0.5 text-fg-faint hover:text-fg">
+            <button onClick={() => setSelected(null)} aria-label="Back" className="rounded-xs p-0.5 text-fg-faint hover:text-fg">
               <ChevronLeft size={15} />
             </button>
           ) : null}
@@ -88,10 +88,10 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Run an operation…"
-              className="flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-fg-faint"
+              className="flex-1 bg-transparent text-sm text-fg placeholder:text-fg-faint"
             />
           )}
-          <button onClick={onClose} className="rounded-xs p-0.5 text-fg-faint hover:bg-panel-2 hover:text-fg">
+          <button onClick={onClose} aria-label="Close" className="rounded-xs p-0.5 text-fg-faint hover:bg-panel-2 hover:text-fg">
             <X size={15} />
           </button>
         </header>

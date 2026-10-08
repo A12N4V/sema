@@ -8,7 +8,7 @@
 //   icon_off_scale       lucide icons whose size is not on ICON_SCALE
 //   raw_hex_colors       hard-coded #rrggbb in .tsx (should come from theme tokens / CSS vars)
 //   unlabeled_icon_btns  <button> whose body is only an icon and has no aria-label/title
-//   inline_styles        style={{...}} occurrences in .tsx
+//   inline_styles        style={{...}} and el.style.x = ... in .tsx (dynamic geometry via CSS vars is fine)
 import { execSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { gzipSync } from "node:zlib";
@@ -36,7 +36,8 @@ for (const f of tsx) {
     const n = +m[2]; sizes.add(n); if (!ICON_SCALE.has(n)) out.icon_off_scale++;
   }
   out.raw_hex_colors += (s.match(/#[0-9a-fA-F]{6}\b/g) ?? []).length;
-  out.inline_styles += (s.match(/style=\{\{/g) ?? []).length;
+  // Imperative style writes count too, or moving style={{}} into a ref callback "wins".
+  out.inline_styles += (s.match(/style=\{\{/g) ?? []).length + (s.match(/\.style\.\w+\s*=|\.style\.setProperty\(/g) ?? []).length;
   for (const m of s.matchAll(/<button\b([^>]*)>\s*<([A-Z]\w*)\b[^>]*\/>\s*<\/button>/g)) {
     if (icons.has(m[2]) && !/aria-label|title=/.test(m[1])) out.unlabeled_icon_btns++;
   }

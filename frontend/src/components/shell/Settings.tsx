@@ -46,7 +46,7 @@ export function Settings() {
       <div className="pop w-[420px] max-w-[92vw] overflow-hidden" onMouseDown={(e) => e.stopPropagation()}>
         <header className="flex items-center justify-between border-b border-seam px-4 py-2.5">
           <span className="text-md font-semibold text-fg">Settings</span>
-          <button onClick={() => setOpen(false)} className="rounded-xs p-0.5 text-fg-faint hover:bg-panel-2 hover:text-fg">
+          <button onClick={() => setOpen(false)} aria-label="Close settings" className="rounded-xs p-0.5 text-fg-faint hover:bg-panel-2 hover:text-fg">
             <X size={15} />
           </button>
         </header>

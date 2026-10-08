@@ -10,7 +10,7 @@ const API_TARGET = process.env.SEMA_API_URL ?? 'http://localhost:8123'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    port: 5173,
+    port: Number(process.env.SEMA_WEB_PORT ?? 5173),
     proxy: {
       '/api': { target: API_TARGET, changeOrigin: true },
     },

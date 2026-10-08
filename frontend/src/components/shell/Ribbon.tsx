@@ -231,7 +231,7 @@ function Field({
           onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
           inputMode="decimal"
           style={{ width }}
-          className="mono bg-transparent text-xs outline-none"
+          className="mono bg-transparent text-xs"
         />
         {suffix && <span className="text-2xs text-fg-faint">{suffix}</span>}
       </span>
@@ -248,7 +248,7 @@ function Select({ label, value, onChange, options }: {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mono rounded-xs border border-seam bg-bg px-1.5 py-1 text-xs outline-none focus:border-accent"
+        className="mono rounded-xs border border-seam bg-bg px-1.5 py-1 text-xs focus:border-accent"
       >
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
