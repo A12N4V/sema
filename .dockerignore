@@ -1,0 +1,9 @@
+.git
+.claude
+**/node_modules
+**/.venv
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+.sema
+docs
