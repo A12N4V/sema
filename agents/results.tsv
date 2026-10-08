@@ -10,3 +10,6 @@ time	agent	commit	status	score	backend_tests	frontend_tests	note
 2026-10-08 12:55	ops	577719e	discard				no changes (mcode rc=4) (6m)
 2026-10-08 13:21	icons	9029828	discard	0.8867	236	273	regressed op_drop_channels_msx1.50 ux_overlapsx1.14 (33m)
 2026-10-08 14:36	a11y	1db5cff	discard	0.869	236	273	regressed op_average_epochs_msx2.92 op_set_channel_types_msx1.42 ux_overlapsx2.12 ux_clipped_textx1.04 (61m)
+2026-10-08 15:52	speed	d04bba1	discard	0.7419	249	273	gate failed: ? (15m)
+2026-10-08 16:09	layout	385c712	discard	0.8281	236	273	gate failed: ? (32m)
+2026-10-08 16:19	tests	35cc29d	discard	0.7838	259	273	gate failed: backend (42m)

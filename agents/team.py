@@ -308,7 +308,7 @@ def _run_agent_once(name: str, path: Path, text: str, run_dir: Path) -> int:
 
 def judge(task: dict, base: dict, new: dict) -> tuple[bool, str]:
     if not new["gate"].get("ok"):
-        failed = [k for k in ("backend", "typecheck", "lint", "frontend") if not new["gate"].get(k)]
+        failed = [k for k in ("backend", "typecheck", "lint", "frontend", "e2e") if new["gate"].get(k) is False]
         return False, f"gate failed: {','.join(failed) or new['gate'].get('error', '?')[:80]}"
     bm, nm = base["metrics"], new["metrics"]
     focus = task["focus"]
