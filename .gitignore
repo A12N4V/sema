@@ -1,12 +1,12 @@
 # Python
-backend/.venv/
+backend/.venv
 backend/*.egg-info/
 backend/__pycache__/
 **/__pycache__/
 *.pyc
 
 # Node / frontend
-frontend/node_modules/
+frontend/node_modules
 frontend/dist/
 
 # Sema runtime data (uploaded files, session working dirs)

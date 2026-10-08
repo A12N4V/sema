@@ -11,7 +11,7 @@ is appended to agents/results.tsv; transcripts and scores go to agents/.state/ru
 """
 from __future__ import annotations
 
-import argparse, concurrent.futures as cf, datetime as dt, json, os, re, shutil, subprocess, sys, time
+import argparse, concurrent.futures as cf, threading, datetime as dt, json, os, re, shutil, subprocess, sys, time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +22,10 @@ PROGRAM = ROOT / "agents" / "program.md"
 MCODE = Path(os.environ.get("MCODE", Path.home() / "deferential/.build/minimax-code/bin/mcode"))
 MODEL = os.environ.get("SEMA_AGENT_MODEL", "z-ai/glm-5.3-flash")
 INTEGRATION = "agents/integration"
+GIT_LOCK = threading.Lock()
+# Benchmarks must run one at a time: parallel agents scoring together compete for CPU
+# and every *_ms metric looks like a regression.
+SCORE_LOCK = threading.Lock()  # git worktree add/remove race on .git/index.lock
 PY = str(ROOT / "backend/.venv/bin/python")
 MAX_STEPS = int(os.environ.get("SEMA_AGENT_STEPS", "80"))
 TIMEOUT_MIN = int(os.environ.get("SEMA_AGENT_TIMEOUT_MIN", "30"))
@@ -106,6 +110,11 @@ def ensure_integration() -> None:
 
 
 def make_worktree(name: str, base: str) -> Path:
+    with GIT_LOCK:
+        return _make_worktree(name, base)
+
+
+def _make_worktree(name: str, base: str) -> Path:
     path = WT / name
     if path.exists():
         sh(["git", "worktree", "remove", "--force", str(path)], check=False)
@@ -118,11 +127,17 @@ def make_worktree(name: str, base: str) -> Path:
 
 
 def drop_worktree(path: Path) -> None:
-    sh(["git", "worktree", "remove", "--force", str(path)], check=False)
-    shutil.rmtree(path, ignore_errors=True)
+    with GIT_LOCK:
+        sh(["git", "worktree", "remove", "--force", str(path)], check=False)
+        shutil.rmtree(path, ignore_errors=True)
 
 
 def score(path: Path) -> dict:
+    with SCORE_LOCK:
+        return _score(path)
+
+
+def _score(path: Path) -> dict:
     out = sh([PY, str(ROOT / "bench/score.py"), "--root", str(path)], check=False, timeout=2400)
     try:
         return json.loads([l for l in out.splitlines() if l.startswith("{")][-1])
@@ -213,6 +228,9 @@ def attempt(name: str, task: dict, base_ref: str, base_score: dict, history: str
         else:
             new = score(path)
             kept, why = judge(task, base_score, new)
+            if not kept and why.startswith("regressed") and all(m.split("x")[0].endswith("_ms") for m in why.split()[1:]):
+                new = score(path)  # timing-only regression: measure again before believing it
+                kept, why = judge(task, base_score, new)
         (run_dir / "score.json").write_text(json.dumps(new, indent=1))
         sha = sh(["git", "rev-parse", "--short", "HEAD"], cwd=path)
         log_result(name, sha, kept, f"{why} ({(time.time() - t0) / 60:.0f}m)", new)
@@ -246,7 +264,15 @@ def wave(only: list[str] | None) -> None:
     tasks = {k: v for k, v in TASKS.items() if not only or k in only}
     with cf.ThreadPoolExecutor(max_workers=min(4, len(tasks))) as ex:
         futs = {ex.submit(attempt, n, t, INTEGRATION, base): n for n, t in tasks.items()}
-        winners = [b for f in cf.as_completed(futs) if (r := f.result())[0] for b in [r[1]]]
+        winners = []
+        for f in cf.as_completed(futs):
+            try:
+                kept, branch = f.result()
+            except Exception as e:  # one broken agent must not sink the wave
+                print(f"[{futs[f]}] crashed: {e}", flush=True)
+                continue
+            if kept:
+                winners.append(branch)
     for b in winners:
         print(f"merge {b}: {'ok' if merge_into_integration(b) else 'skipped'}")
 
