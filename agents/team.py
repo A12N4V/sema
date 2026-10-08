@@ -241,6 +241,9 @@ def log_result(name: str, sha: str, kept: bool, why: str, new: dict) -> None:
 
 
 def attempt(name: str, task: dict, base_ref: str, base_score: dict, history: str = "") -> tuple[bool, str]:
+    free_gb = shutil.disk_usage(ROOT).free / 1e9
+    if free_gb < 6:  # a full disk wedges every process on the machine, not just this loop
+        raise RuntimeError(f"only {free_gb:.1f} GB free; refusing to start {name}")
     stamp = f"{dt.datetime.now():%m%d-%H%M%S}-{name}"
     run_dir = STATE / "runs" / stamp
     path = make_worktree(stamp, base_ref)

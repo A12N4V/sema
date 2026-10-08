@@ -12,10 +12,12 @@ timed (including waiting out a queued job). Prints one JSON object:
 """
 from __future__ import annotations
 
-import json, os, sys, tempfile, time
+import atexit, json, os, shutil, sys, tempfile, time
 from pathlib import Path
 
-os.environ.setdefault("SEMA_DATA_DIR", tempfile.mkdtemp(prefix="sema-bench-"))
+if "SEMA_DATA_DIR" not in os.environ:
+    os.environ["SEMA_DATA_DIR"] = tempfile.mkdtemp(prefix="sema-bench-")
+    atexit.register(shutil.rmtree, os.environ["SEMA_DATA_DIR"], ignore_errors=True)
 BACKEND = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND))
 sys.path.insert(0, str(BACKEND / "tests"))

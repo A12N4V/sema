@@ -15,7 +15,7 @@ tsc, oxlint, vitest, and the full Playwright suite (e2e/*.spec.ts).
 """
 from __future__ import annotations
 
-import argparse, json, math, os, re, socket, subprocess, sys
+import argparse, json, math, os, re, shutil, socket, subprocess, sys, tempfile
 from pathlib import Path
 
 MAIN = Path(__file__).resolve().parents[1]
@@ -26,8 +26,14 @@ NOISY = re.compile(r"_ms$")
 
 def sh(cmd: list[str], cwd: Path, timeout: int = 1200, stdout_only: bool = False,
        env: dict | None = None) -> tuple[int, str]:
-    p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout,
-                       env={**os.environ, **(env or {})})
+    # Every stage gets a private data dir that is deleted afterwards; the e2e
+    # servers would otherwise fill ~/.sema and the test suites $TMPDIR.
+    data = tempfile.mkdtemp(prefix="sema-score-")
+    try:
+        p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout,
+                           env={**os.environ, "SEMA_DATA_DIR": data, **(env or {})})
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
     return p.returncode, p.stdout if stdout_only else p.stdout + p.stderr
 
 

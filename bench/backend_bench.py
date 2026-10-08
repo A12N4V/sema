@@ -9,10 +9,12 @@ PNG disk cache (we want the render cost, not the cache hit).
 """
 from __future__ import annotations
 
-import argparse, json, os, statistics, sys, tempfile, time
+import argparse, atexit, json, os, shutil, statistics, sys, tempfile, time
 from pathlib import Path
 
-os.environ.setdefault("SEMA_DATA_DIR", tempfile.mkdtemp(prefix="sema-bench-"))
+if "SEMA_DATA_DIR" not in os.environ:
+    os.environ["SEMA_DATA_DIR"] = tempfile.mkdtemp(prefix="sema-bench-")
+    atexit.register(shutil.rmtree, os.environ["SEMA_DATA_DIR"], ignore_errors=True)
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
 from fastapi.testclient import TestClient  # noqa: E402
