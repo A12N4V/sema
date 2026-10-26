@@ -47,8 +47,12 @@ def free_port() -> str:
 def gate(root: Path, e2e: bool = True) -> dict:
     py = str(MAIN / "backend/.venv/bin/python")
     g: dict = {}
+    # the omics tests read the demo runs: git-ignored data, so a worktree uses the main checkout's
+    omics_runs = root / "omics-data" / "runs"
+    omics_runs = omics_runs if omics_runs.is_dir() else MAIN / "omics-data" / "runs"
     rc, out = sh([py, "-m", "pytest", "tests/", "-q", "-p", "no:cacheprovider",
-                  "--deselect", "tests/test_source.py"], root / "backend")
+                  "--deselect", "tests/test_source.py"], root / "backend",
+                 env={"SEMA_OMICS_RUNS": str(omics_runs)})
     g["backend"] = rc == 0
     g["backend_tests"] = int(m.group(1)) if (m := re.search(r"(\d+) passed", out)) else 0
     if rc: g["backend_log"] = out[-3000:]

@@ -21,7 +21,15 @@ STATE = ROOT / "agents" / ".state"
 WT = ROOT / "agents" / ".wt"
 RESULTS = ROOT / "agents" / "results.tsv"
 PROGRAM = ROOT / "agents" / "program.md"
-MCODE = Path(os.environ.get("MCODE", Path.home() / "deferential/.build/minimax-code/bin/mcode"))
+MCODE = Path(os.environ.get("MCODE", next((p for p in (
+    Path.home() / "deferential/.build/minimax-code/bin/mcode",
+    Path.home() / ".kula-team/mcode-npm/node_modules/.bin/mcode") if p.exists()),
+    Path.home() / "deferential/.build/minimax-code/bin/mcode")))
+# Run under a spend meter (meter_proxy.py -- python3 agents/team.py ...): it hands the
+# child DEF_METER_TOKEN and serves the OpenRouter API on 127.0.0.1:$METER_PORT.
+BASE_URL = os.environ.get("SEMA_AGENT_BASE_URL") or (
+    f"http://127.0.0.1:{os.environ.get('METER_PORT', '47391')}/api/v1" if os.environ.get("DEF_METER_TOKEN")
+    else "https://openrouter.ai/api/v1")
 MODEL = os.environ.get("SEMA_AGENT_MODEL", "z-ai/glm-5.3-flash")
 INTEGRATION = "agents/integration"
 GIT_LOCK = threading.Lock()
@@ -49,6 +57,23 @@ TASKS: dict[str, dict] = {
                  "services/ledger.py), topomap PNG rendering (core/render.py, core/topomap.py), the 30 s "
                  "window (core/wire.py, utils/decimate.py) and PSD. Profile first (cProfile on "
                  "bench/backend_bench.py), fix the real hotspot, keep results identical.",
+    },
+    "omics-wire": {
+        "focus": [r"^omics_.*_kb$"],
+        "brief": "Shrink the Plethos/Karyon figure payloads: the UMAP spec (clusters/umap and "
+                 "/live/umap_gene, ~0.75 MB of JSON) and the volcano (genes/de, ~340 kB). Start in "
+                 "backend/app/omics/figures.py (_f, sn_embedding, bulk_de) and live.py. Ideas: fewer "
+                 "decimals where the plot cannot show them, a shared index instead of repeated "
+                 "category strings, typed arrays as base64. The renderers in frontend/src/omics/figures "
+                 "must draw the same picture; backend/tests/omics must stay green.",
+    },
+    "omics-speed": {
+        "focus": [r"^omics_.*_ms$"],
+        "brief": "Make the Plethos/Karyon live endpoints faster, above all /live/umap_gene (~600 ms) "
+                 "and /live/de_rethreshold (~50 ms), then the figure specs. backend/app/omics/live.py "
+                 "and figures.py. Profile first (cProfile on bench/omics_bench.py): the h5ad read and "
+                 "pickle loads are the usual suspects – cache what is immutable per run, read only "
+                 "the columns needed. Numbers must stay identical; backend/tests/omics must stay green.",
     },
     "icons": {
         "focus": [r"^icon_", r"^raw_hex_colors$", r"^unlabeled_icon_btns$", r"^inline_styles$"],
@@ -109,7 +134,7 @@ def sh(cmd, cwd=ROOT, check=True, **kw) -> str:
 
 
 def openrouter_key() -> str:
-    if k := os.environ.get("OPENROUTER_API_KEY"):
+    if k := os.environ.get("DEF_METER_TOKEN") or os.environ.get("OPENROUTER_API_KEY"):
         return k
     cfg = json.loads((Path.home() / ".config/opencode/config.json").read_text())
     return cfg["provider"]["openrouter"]["options"]["apiKey"]
@@ -124,7 +149,7 @@ def setup() -> None:
     (STATE / "mcode").mkdir(parents=True, exist_ok=True)
     env = mcode_env()
     if "custom_provider:openrouter" not in sh([MCODE, "provider", "list"], env=env, check=False):
-        sh([MCODE, "provider", "add", "--name", "openrouter", "--base-url", "https://openrouter.ai/api/v1",
+        sh([MCODE, "provider", "add", "--name", "openrouter", "--base-url", BASE_URL,
             "--api-format", "openai-completions", "--model", MODEL, "--api-key-env", "OPENROUTER_API_KEY",
             "--context-limit", "200000", "--output-limit", "16384"], env=env)
     # Merge agents/mcode.yaml (features off, no data contribution) into the profile and pick the model.
