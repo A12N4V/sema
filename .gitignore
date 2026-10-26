@@ -23,3 +23,6 @@ frontend/blob-report/
 agents/.state/
 agents/.wt/
 bench/out/
+
+# Plethos/Karyon runs and uploaded inputs (data, not source)
+omics-data/

@@ -28,6 +28,23 @@ dependencies = [
     # the derived cache silently drops the TFR
     "httpx>=0.27",          # the API's own test client and outbound fetches
     "python-picard>=0.7",
+    # Plethos (bulk RNA-seq) and Karyon (snRNA-seq), app/omics
+    "nbformat>=5.10",
+    "nbclient>=0.10",
+    "ipykernel>=6.29",
+    "pandas>=2.1,<3",       # the snRNA notebook passes sheet_name positionally
+    "seaborn>=0.13",        # imported by the snRNA notebook
+    "scanpy>=1.10",
+    "anndata>=0.10",
+    "igraph>=0.11",
+    "leidenalg>=0.10",
+    "pydeseq2>=0.4",
+    "gseapy>=1.1",
+    "openpyxl>=3.1",
+    "adjustText>=1.1",
+    "scikit-misc>=0.3",
+    "h5py>=3.10",
+    "lxml>=5.0",            # gseapy.Msigdb parses the MSigDB index page
 ]
 
 [project.optional-dependencies]

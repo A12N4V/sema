@@ -58,6 +58,12 @@ app.include_router(channels.router)
 app.include_router(analysis.router)
 
 
+# Plethos (bulk RNA-seq) and Karyon (snRNA-seq) live in their own sub-app:
+# runs on disk and a ledger per run, not in-memory MNE sessions.
+from app.omics.main import app as omics_app  # noqa: E402
+app.mount("/omics", omics_app)
+
+
 @app.get("/api/health")
 async def health() -> dict:
     return {"status": "ok", "active_sessions": sessions.active_count()}
