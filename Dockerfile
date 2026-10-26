@@ -18,12 +18,16 @@ USER user
 ENV HOME=/home/user PATH=/home/user/.local/bin:$PATH \
     SEMA_STATIC_DIR=/home/user/app/static \
     SEMA_CORS_ORIGINS=* \
+    HODOS_RUNS=/home/user/app/omics-data/runs \
+    HODOS_INPUTS=/home/user/app/omics-data/inputs \
     UV_PROJECT_ENVIRONMENT=/home/user/venv \
     MNE_DATA=/home/user/mne_data
 WORKDIR /home/user/app
 COPY --chown=user backend/pyproject.toml backend/uv.lock backend/.python-version ./backend/
 RUN cd backend && uv sync --frozen --no-install-project --no-dev
 COPY --chown=user backend/ ./backend/
+# Plethos and Karyon read their scripts and notebook from workflows/ at the repo root
+COPY --chown=user workflows/ ./workflows/
 RUN cd backend && uv sync --frozen --no-dev
 COPY --chown=user --from=web /web/dist ./static
 EXPOSE 7860

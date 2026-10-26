@@ -23,6 +23,8 @@ from app.omics.main import app
 client = TestClient(app)
 
 _REPO = Path(__file__).resolve().parents[3]
+# the demo runs are git-ignored data: a worktree points here at the main checkout's
+RUNS = Path(os.environ.get("SEMA_OMICS_RUNS", _REPO / "omics-data" / "runs"))
 
 
 @pytest.fixture(autouse=True)
@@ -30,7 +32,7 @@ def _restore_runner_state():
     """test_api.py reloads app.runner / app.main with HODOS_RUNS pointed at a
     tmp dir; importlib.reload mutates the shared module object, so restore the
     real runs dir before every test in this module."""
-    os.environ["HODOS_RUNS"] = str(_REPO / "omics-data" / "runs")
+    os.environ["HODOS_RUNS"] = str(RUNS)
     os.environ.pop("HODOS_INPUTS", None)
     import importlib
     from app.omics import runner
@@ -39,7 +41,7 @@ def _restore_runner_state():
 
 
 def _find(workflow: str) -> str:
-    for p in sorted(glob.glob(str(_REPO / "omics-data" / "runs" / "*" / "run.json"))):
+    for p in sorted(glob.glob(str(RUNS / "*" / "run.json"))):
         m = json.loads(open(p).read())
         if m["workflow"] == workflow:
             return m["id"]
@@ -53,7 +55,7 @@ LIVE = "/api/runs"
 
 
 def _top_symbols(n=30):
-    res = pd.read_pickle(_REPO / "omics-data" / "runs" / BULK / "project" / "16_objects" / "res.pkl")
+    res = pd.read_pickle(RUNS / BULK / "project" / "16_objects" / "res.pkl")
     sig = res[res.sig_FDR == True].sort_values("padj")  # noqa: E712
     return sig.symbol.head(n).tolist()
 
@@ -109,6 +111,24 @@ def test_de_rethreshold_4xx(body, msg):
 
 
 # ------------------------------------------------------------------ pca
+
+def test_pca_on_a_run_whose_metadata_is_indexed_by_sample(tmp_path, monkeypatch):
+    """The plethos package saves meta.pkl with the sample names as the index,
+    older runs as a `sample` column; the live layer reads both."""
+    import shutil, importlib
+    src = RUNS / BULK
+    shutil.copytree(src, tmp_path / BULK, ignore=shutil.ignore_patterns("_live", "_figcache"))
+    meta_p = tmp_path / BULK / "project" / "16_objects" / "meta.pkl"
+    meta = pd.read_pickle(meta_p)
+    if "sample" in meta.columns:
+        meta.set_index("sample").rename_axis(None).to_pickle(meta_p)
+    monkeypatch.setenv("HODOS_RUNS", str(tmp_path))
+    from app.omics import runner
+    importlib.reload(runner)
+    r = client.post(f"{LIVE}/{BULK}/live/pca", json={"exclude": ["V1"], "color": "group"})
+    assert r.status_code == 200, r.text[:200]
+    assert "V1" not in r.json()["names"]
+
 
 def test_pca_with_exclusions_and_colour():
     r = client.post(f"{LIVE}/{BULK}/live/pca", json={"exclude": [], "color": "group"})

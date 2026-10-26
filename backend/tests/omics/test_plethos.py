@@ -18,8 +18,9 @@ os.sys.path.insert(0, str(REPO / "workflows" / "bulk-py"))  # noqa: E402  (befor
 import plethos  # noqa: E402
 from plethos import common, de, enrich, integrate, io, normalize, pca, qc, signatures, sensitivity  # noqa: E402
 
-DEMO = REPO / "omics-data" / "runs" / "20261025-154815-6ab7" / "project"
-INPUTS = REPO / "omics-data" / "inputs" / "bulk-demo"
+RUNS = Path(os.environ.get("SEMA_OMICS_RUNS", REPO / "omics-data" / "runs"))
+DEMO = RUNS / "20261025-154815-6ab7" / "project"
+INPUTS = RUNS.parent / "inputs" / "bulk-demo"
 CONFIG = dict(group_col="group", group_ref="V", group_test="T")
 
 pytestmark = pytest.mark.skipif(

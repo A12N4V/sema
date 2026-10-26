@@ -339,7 +339,9 @@ PLETHOS = [
          ["13_publication_figures", "14_supplementary_figures", "15_reports"], [
         Figure("sens", "Sensitivity refit", "xy", _one("15_reports", "sensitivity_with_without_T4_LFC.csv"), bulk_sens),
         Figure("publication", "Publication panels", "multi-panel",
-               _one("13_publication_figures", "Figure1_overview.png"), bulk_publication,
+               # stage 12 writes its source list (runs from before the Python port: the PNG)
+               lambda r: [q for n in ("Figure_sources.txt", "Figure1_overview.png")
+                          if (q := r / "13_publication_figures" / n).exists()][:1], bulk_publication,
                note="four live panels, exportable as one figure")]),
 ]
 

@@ -37,7 +37,7 @@ export type LiveResult = Spec & { exact: boolean; ms: number; counts?: Record<st
 export type JobStatus = { id: string; status: "queued" | "running" | "done" | "error"; history: string[]; spec?: LiveResult; error?: string; detail?: string };
 
 async function j<T>(path: string, init?: RequestInit): Promise<T> {
-  const r = await fetch(`/omics/api${path}`, init);
+  const r = await fetch(`${OMICS}${path}`, init);
   if (!r.ok) {
     let msg = `${r.status}`;
     try { msg = (await r.json()).detail ?? msg; } catch { /* not json */ }
@@ -48,6 +48,9 @@ async function j<T>(path: string, init?: RequestInit): Promise<T> {
 const post = <T,>(path: string, body?: unknown) =>
   j<T>(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
 
+/** The omics sub-app, on Sema's API origin (see api/client.ts). */
+const OMICS = `${(import.meta.env.VITE_API_ORIGIN ?? "").replace(/\/$/, "")}/omics/api`;
+
 const qs = (o: Record<string, string | undefined | null>) => {
   const p = Object.entries(o).filter(([, v]) => v != null && v !== "") as [string, string][];
   return p.length ? `?${new URLSearchParams(p)}` : "";
@@ -57,7 +60,7 @@ export const api = {
   caps: () => j<Caps>("/capabilities"),
   workflows: () => j<Workflow[]>("/workflows"),
   source: (wf: string, sid: string, engine?: string) =>
-    fetch(`/omics/api/workflows/${wf}/stages/${sid}/source${qs({ engine })}`).then((r) => r.text()),
+    fetch(`${OMICS}/workflows/${wf}/stages/${sid}/source${qs({ engine })}`).then((r) => r.text()),
   inputs: (wf: string) => j<{ uploaded: InputFile[]; demo: InputFile[] }>(`/inputs/${wf}`),
   makeDemo: (wf: string) => post<{ demo: InputFile[] }>(`/inputs/${wf}/demo`),
   upload: (wf: string, files: FileList | File[], role?: string, replace?: boolean) => {
@@ -79,8 +82,8 @@ export const api = {
   // – live compute (L1): every response is a figures.py spec + exact + ms –
   live: (id: string, op: string, body?: unknown) => post<LiveResult>(`/runs/${id}/live/${op}`, body),
   job: (id: string, jobId: string) => j<JobStatus>(`/runs/${id}/live/jobs/${jobId}`),
-  fileUrl: (id: string, path: string) => `/omics/api/runs/${id}/file/${path.split("/").map(encodeURIComponent).join("/")}`,
-  exportUrl: (id: string, entry?: number) => `/omics/api/runs/${id}/export${qs({ entry: entry ? String(entry) : undefined })}`,
+  fileUrl: (id: string, path: string) => `${OMICS}/runs/${id}/file/${path.split("/").map(encodeURIComponent).join("/")}`,
+  exportUrl: (id: string, entry?: number) => `${OMICS}/runs/${id}/export${qs({ entry: entry ? String(entry) : undefined })}`,
 };
 
 export const fmtBytes = (n: number) => n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : n > 1e3 ? `${(n / 1e3).toFixed(0)} kB` : `${n} B`;

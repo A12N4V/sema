@@ -15,7 +15,7 @@
  * same colours, less carrier. `size` picks between them.
  */
 export function Mark({ size = 22, className }: { size?: number; className?: string }) {
-  const src = size >= 72 ? "/mark-full.png" : "/mark.png";
+  const src = `${import.meta.env.BASE_URL}${size >= 72 ? "mark-full.png" : "mark.png"}`;
   return (
     <img
       src={src}

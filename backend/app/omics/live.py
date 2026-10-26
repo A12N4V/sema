@@ -116,6 +116,9 @@ def _py_objects(run: runner.Run) -> tuple[Path, pd.DataFrame, pd.DataFrame, pd.D
     vst = pd.read_pickle(objs / "vst.pkl") if (objs / "vst.pkl").exists() else figures._vst(root)
     counts = pd.read_pickle(objs / "counts_filt.pkl")
     meta = pd.read_pickle(objs / "meta.pkl")
+    if "sample" not in meta.columns:
+        # runs written by the plethos package keep the sample names in the index
+        meta = meta.rename_axis("sample").reset_index()
     if "symbol" not in res.columns:
         annot = pd.read_pickle(objs / "annot.pkl")
         res = res.copy()

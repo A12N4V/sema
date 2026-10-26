@@ -8,7 +8,8 @@ Output: {"gate": {...}, "metrics": {...}, "ratios": {...}, "score": float}
   ratios   metric / baseline (bench/baseline.json in the *main* repo)
   score    geometric mean of ratios; < 1.0 means better than baseline
 
-Benchmarks: backend_bench.py (endpoint latency/payload), ops_bench.py (every
+Benchmarks: backend_bench.py (endpoint latency/payload), omics_bench.py (Plethos /
+Karyon live endpoints and figure payloads), ops_bench.py (every
 registered op), ui_bench.mjs (icon/style audit + bundle), ux_bench.mjs (real
 browser: a11y, layout, tap targets, CLS, interaction timings). Gate: pytest,
 tsc, oxlint, vitest, and the full Playwright suite (e2e/*.spec.ts).
@@ -86,6 +87,12 @@ def metrics(root: Path) -> dict:
     m.update(_last_json(out) if rc == 0 else {"ui_bench_error": 1})
     rc, out = sh([py, str(root / "bench/ops_bench.py")], root, stdout_only=True)
     m.update(_last_json(out) if rc == 0 else {"ops_bench_error": 1})
+    # Plethos / Karyon: the demo runs live in the main checkout (git-ignored data),
+    # so a worktree benchmarks against those rather than needing its own.
+    runs = root / "omics-data" / "runs"
+    runs = runs if runs.is_dir() else MAIN / "omics-data" / "runs"
+    rc, out = sh([py, str(root / "bench/omics_bench.py"), "--reps", "5", "--runs", str(runs)], root, stdout_only=True)
+    m.update(_last_json(out) if rc == 0 else {"omics_bench_error": 1})
     # ui_bench just built frontend/dist, so the UX run serves that build.
     rc, out = sh(["node", str(root / "bench/ux_bench.mjs"), "--root", str(root), "--no-build", "--shots"],
                  root, stdout_only=True, timeout=1800)

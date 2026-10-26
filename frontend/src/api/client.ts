@@ -1,7 +1,10 @@
 // Typed fetch wrappers over the Sema backend. All calls go through the
 // relative `/api` path: Vite proxies it in dev, same-origin in prod.
 
-const BASE = "";
+// Same origin by default (Vite proxies /api in dev; FastAPI serves the app in
+// a container). A static build hosted apart from its API (GitHub Pages) sets
+// VITE_API_ORIGIN at build time, e.g. https://<space>.hf.space.
+const BASE = (import.meta.env.VITE_API_ORIGIN ?? "").replace(/\/$/, "");
 
 export interface SessionInfo {
   session_id: string;

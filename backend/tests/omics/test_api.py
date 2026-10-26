@@ -62,8 +62,11 @@ def test_new_kinds_on_demo_runs():
         for n in c.get(f"/api/runs/{rid}/figures").json():
             assert not [p for p in n["static"] if p.endswith((".png", ".svg"))]
             pngs = [d["path"] for d in n["downloads"] if d["path"].endswith(".png")]
-            if n["id"] in expect[rid]:
-                assert pngs, (rid, n["id"])   # engine PNGs stay reachable as originals
+            # engine PNGs stay reachable as originals – when the engine wrote any:
+            # the Python port draws nothing, every figure is live
+            wrote_pngs = any((main.runner.RUNS / rid).rglob("*.png"))
+            if n["id"] in expect[rid] and wrote_pngs:
+                assert pngs, (rid, n["id"])
 
 
 def test_workflows_read_from_source(client):
