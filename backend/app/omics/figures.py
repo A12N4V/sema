@@ -495,7 +495,7 @@ KARYON = [
     Noun("composition", "Composition", "PieChart", "run S05", ["composition"], [
         Figure("fractions", "Fractions per animal", "groups", _one("composition", "broad_composition_by_animal.csv"), sn_composition),
         Figure("comp_stats", "THC − VEH by cell type", "effects", _one("composition", "composition_animal_inference.csv"), sn_comp_stats)]),
-    Noun("de", "Pseudobulk DE", "Dna", "run S06 and S07", ["pseudobulk", "de"], [
+    Noun("de", "Expression", "Dna", "run S06 and S07", ["pseudobulk", "de"], [
         Figure("de", "Differential expression", "de", _sn_de_files, sn_de,
                variants=lambda r: [_ct(p) for p in _sn_de_files(r)]),
         Figure("gene", "Gene", "gene", _one("pseudobulk", "pseudobulk_counts.csv"), sn_gene,

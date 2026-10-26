@@ -62,10 +62,10 @@ export function ContainerStrip({ page }: { page: Page }) {
   const labelFor = (id?: string) => graph.find((n) => n.id === id)?.label;
   const go = (p: Page) => navigate(sessionPath(session.session_id, p));
   // phone: an icon tab bar, each tab an equal share of the width, the name in its label
-  const phone = useMediaQuery("(max-width: 640px)");
+  const phone = useMediaQuery("(max-width: 899px)");
 
   return (
-    <div className="relative flex h-8 shrink-0 items-stretch gap-0.5 overflow-x-auto border-t border-seam bg-bg px-1.5 max-[640px]:h-12 max-[640px]:px-0.5">
+    <div className="relative flex h-8 shrink-0 items-stretch gap-0.5 overflow-x-auto border-t border-seam bg-bg px-1.5 max-[899px]:h-12 max-[899px]:px-0.5">
       {/* the precompute pass, as a hairline along the seam */}
       {prepState === "running" && (
         <div
@@ -89,7 +89,7 @@ export function ContainerStrip({ page }: { page: Page }) {
             title={exists ? labelFor(c.container) ?? c.hint : `${c.label}: ${c.hint}`}
             className={clsx(
               "flex shrink-0 items-center gap-1.5 rounded-t-sm px-2.5 text-xs transition-colors",
-              "max-[640px]:min-w-11 max-[640px]:flex-1 max-[640px]:justify-center max-[640px]:px-0",
+              "max-[899px]:min-w-11 max-[899px]:flex-1 max-[899px]:justify-center max-[899px]:px-0",
               page === c.page
                 ? "bg-panel font-medium text-fg shadow-[inset_0_1px_0_var(--color-accent)]"
                 : exists
@@ -125,7 +125,7 @@ export function ContainerStrip({ page }: { page: Page }) {
         );
       })}
 
-      <div className="flex-1 max-[640px]:hidden" />
+      <div className="flex-1 max-[899px]:hidden" />
 
       {/* provenance is not a container, it sits apart, on the right */}
       <button
@@ -135,7 +135,7 @@ export function ContainerStrip({ page }: { page: Page }) {
         title="Provenance, branches and export"
         className={clsx(
           "flex shrink-0 items-center gap-1.5 rounded-t-sm px-2.5 text-xs transition-colors",
-          "max-[640px]:min-w-11 max-[640px]:flex-1 max-[640px]:justify-center max-[640px]:px-0",
+          "max-[899px]:min-w-11 max-[899px]:flex-1 max-[899px]:justify-center max-[899px]:px-0",
           page === "pipeline"
             ? "bg-panel font-medium text-fg shadow-[inset_0_1px_0_var(--color-accent)]"
             : "text-fg-dim hover:bg-panel-2/60 hover:text-fg",
