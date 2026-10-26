@@ -13,6 +13,7 @@ export default defineConfig({
     port: Number(process.env.SEMA_WEB_PORT ?? 5173),
     proxy: {
       '/api': { target: API_TARGET, changeOrigin: true },
+      '/omics': { target: API_TARGET, changeOrigin: true },
     },
   },
 })

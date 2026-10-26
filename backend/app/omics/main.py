@@ -91,8 +91,10 @@ _SIGNATURES = {"DG_cell_type_signatures.csv", "targeted_axes_signatures.csv"}
 
 
 @app.post("/api/inputs/{wf}")
-async def upload(wf: str, files: list[UploadFile], role: str | None = None):
+async def upload(wf: str, files: list[UploadFile], role: str | None = None, replace: bool = False):
     d = runner.input_dir(wf, "uploaded")
+    if replace:   # a fresh drop on the launcher: last time's files must not join this run
+        shutil.rmtree(d, ignore_errors=True)
     d.mkdir(parents=True, exist_ok=True)
     for f in files:
         name = Path(f.filename or "").name

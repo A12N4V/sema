@@ -2,6 +2,7 @@ import { Activity, Boxes, Brain, GitBranch, Grid3x3, Layers, Lock, Table2, Waves
 import { clsx } from "clsx";
 import { useStore } from "../../store/store";
 import { navigate, sessionPath, type Page } from "../../lib/router";
+import { useMediaQuery } from "../../lib/useMediaQuery";
 
 /**
  * The noun axis: one chip per MNE container in this session, along the bottom
@@ -60,9 +61,11 @@ export function ContainerStrip({ page }: { page: Page }) {
   const live = new Set(graph.map((n) => n.id));
   const labelFor = (id?: string) => graph.find((n) => n.id === id)?.label;
   const go = (p: Page) => navigate(sessionPath(session.session_id, p));
+  // phone: an icon tab bar, each tab an equal share of the width, the name in its label
+  const phone = useMediaQuery("(max-width: 640px)");
 
   return (
-    <div className="relative flex h-8 shrink-0 items-stretch gap-0.5 overflow-x-auto border-t border-seam bg-bg px-1.5">
+    <div className="relative flex h-8 shrink-0 items-stretch gap-0.5 overflow-x-auto border-t border-seam bg-bg px-1.5 max-[640px]:h-12 max-[640px]:px-0.5">
       {/* the precompute pass, as a hairline along the seam */}
       {prepState === "running" && (
         <div
@@ -82,9 +85,11 @@ export function ContainerStrip({ page }: { page: Page }) {
             key={c.page}
             onClick={() => go(c.page)}
             aria-current={page === c.page ? "page" : undefined}
+            aria-label={c.label}
             title={exists ? labelFor(c.container) ?? c.hint : `${c.label}: ${c.hint}`}
             className={clsx(
               "flex shrink-0 items-center gap-1.5 rounded-t-sm px-2.5 text-xs transition-colors",
+              "max-[640px]:min-w-11 max-[640px]:flex-1 max-[640px]:justify-center max-[640px]:px-0",
               page === c.page
                 ? "bg-panel font-medium text-fg shadow-[inset_0_1px_0_var(--color-accent)]"
                 : exists
@@ -92,10 +97,11 @@ export function ContainerStrip({ page }: { page: Page }) {
                   : "text-fg-faint hover:text-fg-dim",
             )}
           >
-            <Icon size={11} className="shrink-0" />
-            {/* full words, always. An abbreviated chip ("Epo", "Evo") is not a
-                word and not a saving: the strip already scrolls when it must. */}
-            {c.label}
+            <Icon size={phone ? 17 : 11} className="shrink-0" />
+            {/* full words wherever they fit. An abbreviated chip ("Epo", "Evo")
+                is not a word and not a saving; on a phone the icon alone is the
+                tab, with the word as its accessible name and tooltip. */}
+            {!phone && c.label}
             {!exists && <Lock size={9} className="shrink-0 opacity-60" />}
           </button>
         );
@@ -119,23 +125,24 @@ export function ContainerStrip({ page }: { page: Page }) {
         );
       })}
 
-      <div className="flex-1" />
+      <div className="flex-1 max-[640px]:hidden" />
 
       {/* provenance is not a container, it sits apart, on the right */}
       <button
         onClick={() => go("pipeline")}
         aria-current={page === "pipeline" ? "page" : undefined}
+        aria-label="Pipeline"
         title="Provenance, branches and export"
         className={clsx(
           "flex shrink-0 items-center gap-1.5 rounded-t-sm px-2.5 text-xs transition-colors",
+          "max-[640px]:min-w-11 max-[640px]:flex-1 max-[640px]:justify-center max-[640px]:px-0",
           page === "pipeline"
             ? "bg-panel font-medium text-fg shadow-[inset_0_1px_0_var(--color-accent)]"
             : "text-fg-dim hover:bg-panel-2/60 hover:text-fg",
         )}
       >
-        {leaves.length > 1 ? <GitBranch size={11} /> : <GitBranch size={11} className="opacity-50" />}
-        Pipeline
-        <span className="mono text-2xs text-fg-faint">{history.length}</span>
+        {leaves.length > 1 ? <GitBranch size={phone ? 17 : 11} /> : <GitBranch size={phone ? 17 : 11} className="opacity-50" />}
+        {!phone && <>Pipeline <span className="mono text-2xs text-fg-faint">{history.length}</span></>}
       </button>
 
       <span

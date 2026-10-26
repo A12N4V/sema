@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
  * Minimal history router: no dependency.
  *   /   ·   /connect                     → Connect
  *   /s/:id[/<container>]                  → Workspace, one surface
+ *   /p[/:run]   ·   /k[/:run]             → Plethos (bulk RNA-seq) · Karyon (snRNA-seq)
  *
  * The path segment is the **container** being looked at, not a "page": that is
  * the v6 model, where the noun axis (which MNE object) is the bottom strip and
@@ -23,7 +24,14 @@ const ALIASES: Record<string, Page> = {
 
 export type Route =
   | { name: "connect" }
-  | { name: "workspace"; sessionId: string; page: Page };
+  | { name: "workspace"; sessionId: string; page: Page }
+  | { name: "omics"; workflow: OmicsWorkflow; runId: string | null };
+
+/** The omics workbenches: one letter each, so a run link stays short. */
+export type OmicsWorkflow = "bulk" | "snrna";
+const OMICS: Record<string, OmicsWorkflow> = { p: "bulk", k: "snrna" };
+export const omicsPath = (wf: OmicsWorkflow, runId?: string | null) =>
+  `/${wf === "bulk" ? "p" : "k"}${runId ? `/${encodeURIComponent(runId)}` : ""}`;
 
 const toPage = (v: string | undefined): Page => {
   if (!v) return "signal";
@@ -32,6 +40,8 @@ const toPage = (v: string | undefined): Page => {
 };
 
 export function parseRoute(path: string): Route {
+  const o = path.match(/^\/([pk])(?:\/([^/]+))?\/?$/);
+  if (o) return { name: "omics", workflow: OMICS[o[1]], runId: o[2] ? decodeURIComponent(o[2]) : null };
   const m = path.match(/^\/s\/([^/]+)(?:\/([^/]+))?/);
   if (!m) return { name: "connect" };
   return {
