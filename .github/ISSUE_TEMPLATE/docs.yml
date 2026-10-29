@@ -1,6 +1,6 @@
 name: Docs
 description: Something is missing, unclear or out of date in the README or docs/.
-labels: [docs]
+labels: [documentation]
 body:
   - type: input
     id: where
