@@ -13,3 +13,4 @@ time	agent	commit	status	score	backend_tests	frontend_tests	note
 2026-10-08 15:52	speed	d04bba1	discard	0.7419	249	273	gate failed: ? (15m)
 2026-10-08 16:09	layout	385c712	discard	0.8281	236	273	gate failed: ? (32m)
 2026-10-08 16:19	tests	35cc29d	discard	0.7838	259	273	gate failed: backend (42m)
+2026-10-08 16:37	ops	408492a	discard	0.8659	235	273	gate failed: backend (60m)

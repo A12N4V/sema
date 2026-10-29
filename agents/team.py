@@ -338,6 +338,19 @@ def log_result(name: str, sha: str, kept: bool, why: str, new: dict) -> None:
         f.write(f"{dt.datetime.now():%Y-%m-%d %H:%M}\t{name}\t{sha}\t{'keep' if kept else 'discard'}\t"
                 f"{new.get('score', '')}\t{new['gate'].get('backend_tests', '')}\t"
                 f"{new['gate'].get('frontend_tests', '')}\t{why}\n")
+    write_progress()
+
+
+def write_progress() -> None:
+    """Mirror results.tsv into .state/PROGRESS.md for the live board (progress.py)."""
+    try:
+        rows = [r.split("\t") for r in RESULTS.read_text().splitlines()[1:] if r.strip()]
+        kept = sum(r[3] == "keep" for r in rows)
+        out = [f"## sema autoresearch · {len(rows)} attempts · {kept} kept"]
+        out += [f"- [{'x' if r[3] == 'keep' else '!'}] {r[0][5:]} {r[1]} · {r[3]} · score {r[4]} · {r[7][:70]}" for r in rows[-12:]]
+        (STATE / "PROGRESS.md").write_text("\n".join(out) + "\n")
+    except Exception:
+        pass
 
 
 def attempt(name: str, task: dict, base_ref: str, base_score: dict, history: str = "") -> tuple[bool, str]:
