@@ -190,3 +190,15 @@ def test_notebook_end_to_end(client):
         for f in n["figures"]:
             r = client.get(f"/api/runs/{rid}/figures/{n['id']}/{f['id']}")
             assert r.status_code == 200, (n["id"], f["id"], r.text)
+
+
+def test_design_reads_the_sample_sheet(client):
+    """The Design card counts animals from metadata.csv; snRNA has no sheet."""
+    assert client.get("/api/inputs/bulk/design").json() == {"samples": [], "columns": []}
+    client.post("/api/inputs/bulk/demo")
+    d = client.get("/api/inputs/bulk/design?source=demo").json()
+    assert d["columns"][:2] == ["sample", "group"]
+    groups = [r["group"] for r in d["samples"]]
+    assert groups.count("V") == 5 and groups.count("T") == 5
+    assert client.get("/api/inputs/snrna/design").json()["samples"] == []
+    assert client.get("/api/inputs/nope/design").status_code == 404

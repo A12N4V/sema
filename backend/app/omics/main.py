@@ -85,6 +85,24 @@ def make_demo(wf: str):
     return {"demo": _inputs(wf, "demo")}
 
 
+@app.get("/api/inputs/{wf}/design")
+def design(wf: str, source: str = "demo"):
+    """The sample sheet as the Design card reads it: one row per animal, its group.
+
+    Bulk reads metadata.csv; snRNA has no sheet (the notebook names its samples in
+    SAMPLES), so it returns nothing and the card falls back to the parameter.
+    """
+    if wf not in ("bulk", "snrna"):
+        raise HTTPException(404)
+    meta = runner.input_dir(wf, source) / "metadata.csv"
+    if wf != "bulk" or not meta.exists():
+        return {"samples": [], "columns": []}
+    import csv
+    with open(meta, newline="") as f:
+        rows = list(csv.DictReader(f))
+    return {"samples": rows, "columns": list(rows[0]) if rows else []}
+
+
 # Bulk wants two files under fixed names plus the signature tables; snRNA wants the eight .h5 files.
 _BULK_NAMES = {"counts": "gene_count.xls", "metadata": "metadata.csv"}
 _SIGNATURES = {"DG_cell_type_signatures.csv", "targeted_axes_signatures.csv"}

@@ -62,6 +62,7 @@ export const api = {
   source: (wf: string, sid: string, engine?: string) =>
     fetch(`${OMICS}/workflows/${wf}/stages/${sid}/source${qs({ engine })}`).then((r) => r.text()),
   inputs: (wf: string) => j<{ uploaded: InputFile[]; demo: InputFile[] }>(`/inputs/${wf}`),
+  design: (wf: string, source: string) => j<{ samples: Record<string, string>[]; columns: string[] }>(`/inputs/${wf}/design${qs({ source })}`),
   makeDemo: (wf: string) => post<{ demo: InputFile[] }>(`/inputs/${wf}/demo`),
   upload: (wf: string, files: FileList | File[], role?: string, replace?: boolean) => {
     const fd = new FormData();

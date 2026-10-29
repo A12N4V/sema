@@ -4,6 +4,7 @@ import { RotateCcw } from "lucide-react";
 import type { Param, Value } from "../api";
 import { NO_EDITS, useStore, useWorkflow } from "../store";
 import { PaneHead } from "../ui/primitives";
+import { Design, FORKS } from "./Design";
 
 export function Params() {
   const wf = useWorkflow()!;
@@ -18,6 +19,7 @@ export function Params() {
     <aside className="flex h-full min-h-0 flex-col bg-bg">
       <PaneHead title="Parameters" sub={engine === "R" ? "config.R" : engine === "python" ? "config.py" : "configuration cell"} />
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
+        <Design />
         {groups.map(([g, ps]) => (
           <section key={g} className="border-b border-seam px-3 py-2">
             <h3 className="mb-1.5 text-2xs uppercase tracking-[0.12em] text-fg-faint">{g}</h3>
@@ -50,9 +52,9 @@ export function ParamRow({ p, value, compact }: { p: Param; value: Value | undef
   };
   const id = `p-${p.name}${compact ? "-r" : ""}`;
   return (
-    <div className="group" title={p.help}>
+    <div className="group" title={[p.help, FORKS[p.name]].filter(Boolean).join("\n\n")}>
       <div className="flex items-center gap-2">
-        <label htmlFor={id} className={clsx("mono min-w-0 flex-1 truncate text-2xs", edited ? "text-accent" : compact ? "text-fg-faint" : "text-fg-dim")}>{p.name}</label>
+        <label htmlFor={id} className={clsx("mono min-w-0 flex-1 truncate text-2xs", edited ? "text-accent" : compact ? "text-fg-faint" : "text-fg-dim")}>{p.name}{FORKS[p.name] && !compact && <span aria-label="analysis fork" className="ml-1 text-accent/70">◆</span>}</label>
         {p.type === "bool" ? (
           <button id={id} role="switch" aria-checked={!!v} onClick={() => set(!v)}
                   className={clsx("relative h-4 w-7 shrink-0 rounded-full border transition-colors", v ? "border-accent bg-accent" : "border-seam-bright bg-panel-2")}>
@@ -71,6 +73,7 @@ export function ParamRow({ p, value, compact }: { p: Param; value: Value | undef
         )}
       </div>
       {p.help && !compact && <p className="mt-0.5 hidden text-2xs leading-snug text-fg-faint group-focus-within:block">{p.help}</p>}
+      {FORKS[p.name] && !compact && <p className="mt-0.5 hidden text-2xs leading-snug text-accent/80 group-focus-within:block">◆ {FORKS[p.name]}</p>}
     </div>
   );
 }
