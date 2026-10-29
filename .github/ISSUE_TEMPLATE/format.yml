@@ -1,0 +1,34 @@
+name: New data format or workflow
+description: Propose a fourth workbench, or a new input format for an existing one.
+labels: [format, enhancement, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A workbench is a workflow on disk (scripts or a notebook under `workflows/`),
+        read by `backend/app/omics/workflows.py`, plus a detector rule in
+        `frontend/src/lib/detect.ts`. Start from the two RNA-seq workbenches;
+        the format docs show the level of detail a new one needs.
+  - type: input
+    id: format
+    attributes:
+      label: Format
+      placeholder: "spatial transcriptomics (Visium, .h5 + spatial/) · ATAC peaks · iEEG BIDS"
+    validations: { required: true }
+  - type: textarea
+    id: dof
+    attributes:
+      label: Structure and degrees of freedom
+      description: The axes of the data, the independent unit of inference, and the main analyst choices.
+    validations: { required: true }
+  - type: textarea
+    id: tools
+    attributes:
+      label: Tools people use today
+      description: The reference pipeline this would follow (packages, versions), and a public sample dataset.
+    validations: { required: true }
+  - type: textarea
+    id: detect
+    attributes:
+      label: How to recognise it
+      description: Extensions, magic bytes or header columns that tell it apart from formats already detected (EEG, bulk tables, 10x/CellBender HDF5, SNIRF).

@@ -44,6 +44,28 @@ without losing the record of how, is the entire job of this program.</sub>
 
 ---
 
+## Three workbenches, one launcher
+
+Drop a file and the format picks the workbench.
+
+| | Data | Underneath | Method |
+|---|---|---|---|
+| **Sema** | EEG, MEG, fNIRS: anything MNE reads | MNE-Python | this page, [MNE_CAPABILITY_MAP.md](docs/MNE_CAPABILITY_MAP.md) |
+| **Plethos** | bulk RNA-seq: a counts table and a sample sheet | DESeq2 in R, or PyDESeq2 and gseapy | [FORMAT_BULK_RNASEQ.md](docs/FORMAT_BULK_RNASEQ.md) |
+| **Karyon** | single-nucleus RNA-seq: CellBender / 10x `.h5` | scanpy, PyDESeq2 on pseudobulk | [FORMAT_SNRNASEQ.md](docs/FORMAT_SNRNASEQ.md) |
+
+<p align="center"><img src="docs/img/omics/plate-nuclei.png" width="32%" alt="Engraved nuclei, thermal specimen treatment"/> <img src="docs/img/omics/sn-pseudoreplication.png" width="64%" alt="Simulated null: testing across nuclei gives 81% false positives; pseudobulk gives 4%"/></p>
+
+Plethos and Karyon read their stages and parameters straight from the scripts
+and the notebook in `workflows/`, so editing the source changes the workbench.
+Both test THC against vehicle with **the animal as the unit**: the Design card
+at the top of the Parameters pane counts animals, shows the residual degrees of
+freedom, and updates as you exclude a sample or add a covariate. The figure
+above shows why this matters. Testing across individual nuclei turns animal-to-animal
+noise into false discoveries.
+
+---
+
 ## Install
 
 You need **Node 20+**. You do not need Python installed: `uv` fetches the right
@@ -441,7 +463,12 @@ frontend/
   src/lib/plot/          the canvas substrate: LinePlot, Heatmap, scales, paint
   src/lib/figures.ts     the client half of the precomputed figure cache
   src/store/             zustand slices; the cursor is the spine
+workflows/
+  bulk-r/ · bulk-py/     Plethos: the R reference pipeline and its Python port
+  snrna/                 Karyon: the scanpy notebook
 docs/
+  FORMAT_BULK_RNASEQ.md  bulk RNA-seq: degrees of freedom, maths, figures
+  FORMAT_SNRNASEQ.md     snRNA-seq: the same, plus pseudobulk
   ARCHITECTURE.md        how the pieces fit
   EEGLAB_PARITY.md       the honest comparison
   MNE_CAPABILITY_MAP.md  what MNE can do, and how much of it is wired up
@@ -452,6 +479,19 @@ docs/
 in-process dict, so it runs single-worker on purpose. A second worker would
 serve requests from a process that does not hold the session. Scale the box, not
 the worker count.
+
+---
+
+## Contribute
+
+This is meant to be a hub. The most useful contributions, roughly in order:
+
+- **Method reviews.** Read a [format doc](docs/FORMAT_SNRNASEQ.md) and tell us what is statistically wrong. There is an issue form for it.
+- **Operations and figures.** A decorated function is a Sema operation; a JSON spec is a Plethos or Karyon figure.
+- **New formats.** Spatial transcriptomics, ATAC, iEEG BIDS: a fourth workbench follows the shape of the RNA-seq ones.
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md), pick a [`good first issue`](https://github.com/A12N4V/sema/labels/good%20first%20issue),
+or open a [discussion](https://github.com/A12N4V/sema/discussions).
 
 ---
 

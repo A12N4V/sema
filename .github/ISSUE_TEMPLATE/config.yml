@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or idea, not yet a task
+    url: https://github.com/A12N4V/sema/discussions
+    about: Ask how something works, float an idea, or show what you built. Issues are for work someone can pick up.
+  - name: Security problem
+    url: https://github.com/A12N4V/sema/security/advisories/new
+    about: Report privately. Do not open a public issue.
