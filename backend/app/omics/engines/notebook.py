@@ -32,12 +32,18 @@ if FIG_THEME == "dark":
 """
 
 
+GENESETS = SNRNA_NB.parents[1] / "signatures" / "genesets" / "MSIG_GO_BP.json"
+
+
 def params_cell(overrides: dict, input_dir: Path, output_dir: Path) -> str:
     lines = ["# Parameters injected by hodos. Everything above is the authors' configuration cell.",
              f"CELLBENDER_ROOT = Path({str(input_dir)!r})",
              f"OUTPUT_ROOT = Path({str(output_dir)!r})",
              "DATA_ROOT = CELLBENDER_ROOT.parent",
              f"FIG_THEME = {overrides.get('FIG_THEME', 'dark')!r}"]
+    # The workbench ships MSigDB GO:BP for mouse, so pathways run offline unless
+    # the analyst points GENESETS_LOCAL elsewhere (or at "" for live Enrichr).
+    lines.append(f"GENESETS_LOCAL = {str(GENESETS)!r}")
     lines += [f"{k} = {v!r}" for k, v in overrides.items() if k != "FIG_THEME"]
     lines += ['GROUP = {s: ("VEH" if s.startswith("VEH") else "THC") for s in SAMPLES}',
               "assert set(SAMPLES) == set(GROUP)",

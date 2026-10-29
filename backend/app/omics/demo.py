@@ -5,11 +5,14 @@ built on them is labelled `demo` in its ledger.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import h5py
 import numpy as np
 import pandas as pd
+
+GO_BP = Path(__file__).resolve().parents[3] / "workflows" / "signatures" / "genesets" / "MSIG_GO_BP.json"
 
 # ---------------------------------------------------------------- bulk
 
@@ -111,7 +114,12 @@ def write_snrna_demo(dest: Path, n_nuclei: int = 1200, n_bg: int = 3600, seed: i
     rng = np.random.default_rng(seed)
     dest.mkdir(parents=True, exist_ok=True)
     markers = sorted({g for v in _TYPES.values() for g in v})
-    genes = markers + _EXTRA + [f"Gene{i:05d}" for i in range(n_bg)]
+    # Real mouse symbols from the bundled GO:BP sets, so the pathway stage has
+    # something to find; the THC response is planted in a few whole GO terms.
+    go = json.loads(GO_BP.read_text())
+    pool = sorted({g for v in go.values() for g in v} - set(markers) - set(_EXTRA))
+    symbols = list(rng.choice(pool, n_bg, replace=False))
+    genes = markers + _EXTRA + symbols
     gi = {g: i for i, g in enumerate(genes)}
     base = rng.lognormal(-1.2, 1.3, len(genes))
     type_prog = {}
@@ -125,6 +133,11 @@ def write_snrna_demo(dest: Path, n_nuclei: int = 1200, n_bg: int = 3600, seed: i
     thc_shift = np.ones(len(genes))
     resp = rng.choice(np.arange(len(markers) + len(_EXTRA), len(genes)), 80, replace=False)
     thc_shift[resp] = 2 ** rng.normal(0, 1.2, resp.size)
+    inbg = set(symbols)
+    terms = sorted(t for t, v in go.items() if 15 <= len(inbg.intersection(v)) <= 60)
+    for k, t in enumerate(rng.choice(terms, 4, replace=False)):
+        idx = [gi[g] for g in go[t] if g in inbg]
+        thc_shift[idx] = 2 ** ((1 if k % 2 == 0 else -1) * rng.uniform(0.8, 1.6, len(idx)))
     out = []
     for s in [f"VEH{i}" for i in range(1, 5)] + [f"THC{i}" for i in range(1, 5)]:
         share = np.array(_SHARE) * rng.lognormal(0, 0.1, len(_SHARE))
