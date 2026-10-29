@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ThemeToggle } from "../ui/ThemeToggle";
 import {
   ChevronDown, ChevronUp, FileCode2, FileDown, FolderOpen, Loader2, Lock,
   Menu, Search, Settings2, Table2,
@@ -121,6 +122,7 @@ export function Ribbon({ onNewSession }: { onNewSession: () => void }) {
           <span className="mono text-2xs max-[900px]:hidden">⌘K</span>
         </button>
         <SessionChip />
+        <ThemeToggle />
         <button onClick={onNewSession} title="Open another recording" aria-label="New session"
                 className="flex shrink-0 items-center px-2 text-fg-faint transition-colors hover:text-fg">
           <FolderOpen size={14} />
@@ -231,7 +233,7 @@ function Field({
           onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
           inputMode="decimal"
           style={{ width }}
-          className="mono bg-transparent text-xs outline-none"
+          className="mono bg-transparent text-xs"
         />
         {suffix && <span className="text-2xs text-fg-faint">{suffix}</span>}
       </span>
@@ -248,7 +250,7 @@ function Select({ label, value, onChange, options }: {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mono rounded-xs border border-seam bg-bg px-1.5 py-1 text-xs outline-none focus:border-accent"
+        className="mono rounded-xs border border-seam bg-bg px-1.5 py-1 text-xs focus:border-accent"
       >
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>

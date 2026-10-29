@@ -1,0 +1,15 @@
+name: Docs
+description: Something is missing, unclear or out of date in the README or docs/.
+labels: [documentation]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Page and section
+      placeholder: "docs/FORMAT_SNRNASEQ.md §5"
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: What should change
+    validations: { required: true }

@@ -1,0 +1,39 @@
+name: Bug
+description: Something does the wrong thing, crashes, or draws the wrong picture.
+labels: [bug, triage]
+body:
+  - type: dropdown
+    id: workbench
+    attributes:
+      label: Workbench
+      options: [Sema (EEG / MEG / fNIRS), Plethos (bulk RNA-seq), Karyon (snRNA-seq), Launcher / format detection, Packaging / install]
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+      placeholder: "Clicked Fit on the ICA tab with 6 components; got a 500. Expected the components to appear."
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The synthetic samples on the launcher reproduce most things without sharing data. Say if yours needs a real file.
+      placeholder: "1. Launcher → Bulk RNA-seq · dentate gyrus\n2. Set EXCLUDE to …\n3. Run 01 → 05"
+    validations: { required: true }
+  - type: textarea
+    id: log
+    attributes:
+      label: Log or traceback
+      description: The Log pane, the browser console, or the backend terminal. Paste text, not a screenshot.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Commit or version
+      placeholder: "git rev-parse --short HEAD"
+  - type: input
+    id: env
+    attributes:
+      label: OS, browser, Python
+      placeholder: "macOS 15, Chrome 141, Python 3.11"

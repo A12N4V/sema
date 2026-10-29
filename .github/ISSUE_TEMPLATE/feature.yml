@@ -1,0 +1,29 @@
+name: Feature or UX
+description: A new operation, view, figure, or a change to how something works.
+labels: [enhancement, triage]
+body:
+  - type: dropdown
+    id: workbench
+    attributes:
+      label: Workbench
+      options: [Sema (EEG / MEG / fNIRS), Plethos (bulk RNA-seq), Karyon (snRNA-seq), All / shell, Docs]
+    validations: { required: true }
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do and where the current UI gets in the way. Describe the task, not the button.
+    validations: { required: true }
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: A sketch, a reference tool that does it well, or the MNE / scanpy / DESeq2 call it would wrap.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Fits the house rules
+      options:
+        - label: It runs locally; no data leaves the machine.
+        - label: Any new step is recorded and reproducible (it lands in the ledger, the exported script or config).
+        - label: I am willing to open the PR.

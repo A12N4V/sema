@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import { Connect } from "./components/shell/Connect";
 import { Workspace } from "./components/shell/Workspace";
+import { OmicsApp } from "./omics/App";
 import { Settings } from "./components/shell/Settings";
 import { CommandPalette } from "./components/ops/CommandPalette";
 import { api } from "./api/client";
@@ -107,7 +108,9 @@ function App() {
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-bg">
-      {inWorkspace ? (
+      {route.name === "omics" ? (
+        <OmicsApp workflow={route.workflow} routeRun={route.runId} />
+      ) : inWorkspace ? (
         <Workspace page={route.page} onNewSession={newSession} />
       ) : loadingSession ? (
         <div className="flex h-full flex-col items-center justify-center gap-3 text-fg-dim">

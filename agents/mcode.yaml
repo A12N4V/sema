@@ -1,0 +1,23 @@
+logLevel: error
+dataContribution:
+  enabled: false
+agents:
+  default:
+    persona:
+      enabled: false
+    features:
+      mavis: false
+      delegation: false
+      webSearch: false
+memory:
+  enabled: false
+  proactive: false
+askUser:
+  enabled: false
+skillEvolve:
+  enabled: false
+beta:
+  autoMemory: false
+  skillEvolve: false
+  skillProposal: false
+  keepAlive: false

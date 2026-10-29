@@ -7,12 +7,16 @@ import { defineConfig } from 'vite'
 // from the same origin. Override the target with SEMA_API_URL.
 const API_TARGET = process.env.SEMA_API_URL ?? 'http://localhost:8123'
 
+// A static build hosted under a sub-path (GitHub Pages: SEMA_BASE=/sema/).
+// The router strips the prefix, so routes stay root-relative in the code.
 export default defineConfig({
+  base: process.env.SEMA_BASE ?? '/',
   plugins: [react(), tailwindcss()],
   server: {
-    port: 5173,
+    port: Number(process.env.SEMA_WEB_PORT ?? 5173),
     proxy: {
       '/api': { target: API_TARGET, changeOrigin: true },
+      '/omics': { target: API_TARGET, changeOrigin: true },
     },
   },
 })

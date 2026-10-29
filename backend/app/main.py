@@ -58,6 +58,34 @@ app.include_router(channels.router)
 app.include_router(analysis.router)
 
 
+# Plethos (bulk RNA-seq) and Karyon (snRNA-seq) live in their own sub-app:
+# runs on disk and a ledger per run, not in-memory MNE sessions.
+from app.omics.main import app as omics_app  # noqa: E402
+app.mount("/omics", omics_app)
+
+
 @app.get("/api/health")
 async def health() -> dict:
     return {"status": "ok", "active_sessions": sessions.active_count()}
+
+
+# Production: serve the built frontend from the same origin as the API, so one
+# container is the whole app (the Hugging Face Space does this). Off in dev,
+# where Vite serves the UI and proxies /api.
+_static = os.getenv("SEMA_STATIC_DIR")
+if _static and os.path.isfile(os.path.join(_static, "index.html")):
+    from fastapi import HTTPException
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
+
+    _root = os.path.realpath(_static)
+    app.mount("/assets", StaticFiles(directory=os.path.join(_root, "assets")), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    async def spa(path: str):
+        if path.startswith("api/"):
+            raise HTTPException(status_code=404)
+        candidate = os.path.realpath(os.path.join(_root, path))
+        if candidate.startswith(_root + os.sep) and os.path.isfile(candidate):
+            return FileResponse(candidate)
+        return FileResponse(os.path.join(_root, "index.html"))

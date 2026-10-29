@@ -252,7 +252,8 @@ export function ICA() {
           </div>
           <div className="flex items-center gap-2">
             <input
-              className="w-24 rounded-xs border border-seam bg-bg px-2 py-1.5 text-sm text-fg outline-none focus:border-accent"
+              aria-label="ICA components (count, or variance fraction below 1)"
+              className="w-24 rounded-xs border border-seam bg-bg px-2 py-1.5 text-sm text-fg focus:border-accent"
               value={nComp}
               onChange={(e) => setNComp(e.target.value)}
             />

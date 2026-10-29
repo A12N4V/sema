@@ -1,12 +1,12 @@
 # Python
-backend/.venv/
+backend/.venv
 backend/*.egg-info/
 backend/__pycache__/
 **/__pycache__/
 *.pyc
 
 # Node / frontend
-frontend/node_modules/
+frontend/node_modules
 frontend/dist/
 
 # Sema runtime data (uploaded files, session working dirs)
@@ -18,3 +18,11 @@ frontend/test-results/
 frontend/playwright-report/
 frontend/blob-report/
 .claude/
+
+# Agent team / autoresearch runtime state
+agents/.state/
+agents/.wt/
+bench/out/
+
+# Plethos/Karyon runs and uploaded inputs (data, not source)
+omics-data/

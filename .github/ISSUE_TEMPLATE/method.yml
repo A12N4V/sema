@@ -1,0 +1,39 @@
+name: Method or statistics review
+description: A result is wrong in a way the code runs fine on. A test, a threshold, a model or a figure that misleads.
+labels: [method, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        These are the most valuable issues here. The method notes are in
+        [docs/FORMAT_BULK_RNASEQ.md](https://github.com/A12N4V/sema/blob/main/docs/FORMAT_BULK_RNASEQ.md),
+        [docs/FORMAT_SNRNASEQ.md](https://github.com/A12N4V/sema/blob/main/docs/FORMAT_SNRNASEQ.md) and
+        [docs/MNE_CAPABILITY_MAP.md](https://github.com/A12N4V/sema/blob/main/docs/MNE_CAPABILITY_MAP.md).
+  - type: dropdown
+    id: workbench
+    attributes:
+      label: Workbench
+      options: [Sema (EEG / MEG / fNIRS), Plethos (bulk RNA-seq), Karyon (snRNA-seq)]
+    validations: { required: true }
+  - type: input
+    id: where
+    attributes:
+      label: Stage, operation or file
+      placeholder: "Karyon §5 composition · workflows/snrna/…ipynb cell 16"
+    validations: { required: true }
+  - type: textarea
+    id: claim
+    attributes:
+      label: What is wrong and why
+      description: State the assumption that fails, and the consequence (inflated false positives, a biased estimate, a misleading axis).
+    validations: { required: true }
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: A reference, a simulation, or a counterexample. A small simulation like docs/img/omics/make_charts.py is ideal.
+  - type: textarea
+    id: fix
+    attributes:
+      label: Proposed fix
+      description: What the method should do instead, and what it would cost (runtime, dependencies, df).

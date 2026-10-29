@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { ThemeToggle } from "../ui/ThemeToggle";
 import { toast } from "sonner";
-import { UploadCloud, Play, Loader2, Download, ArrowRight, PlugZap } from "lucide-react";
+import { UploadCloud, Play, Loader2, Download, ArrowRight, PlugZap, Dna, Microscope } from "lucide-react";
+import { detect } from "../../lib/detect";
+import { openOmicsFiles, openOmicsSample } from "../../lib/openData";
 import { api, type SessionInfo } from "../../api/client";
 import { pollJob } from "../../lib/ops";
 import { navigate } from "../../lib/router";
@@ -9,6 +12,7 @@ import { Mark } from "../ui/Brand";
 import { SignalField } from "../ui/SignalField";
 
 const FORMATS = "EDF · BDF · GDF · FIF · BrainVision · EEGLAB · CNT · EGI · Persyst · SNIRF · CTF · KIT · EyeLink · Curry";
+const OMICS_FORMATS = "counts table + sample sheet (bulk) · CellBender / 10x .h5, .h5ad (single-nucleus)";
 
 /** "4m ago" / "3h ago" / "2d ago", from a unix timestamp in seconds. */
 function ago(saved: number): string {
@@ -74,6 +78,35 @@ export function Connect() {
     }
   };
 
+  /**
+   * One drop zone for every format: the files decide the workbench. EEG opens a
+   * Sema session; a counts table opens Plethos; single-cell HDF5 opens Karyon.
+   */
+  const openFiles = async (files: File[]) => {
+    setBusy("upload");
+    try {
+      const d = await detect(files);
+      if (d.kind === "eeg") land(await api.uploadFile(d.file));
+      else if (d.kind === "unknown") toast.error(`Not a format Sema reads: ${d.reason}`);
+      else toast.success(await openOmicsFiles(d));
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const openSample = async (wf: "bulk" | "snrna") => {
+    setBusy(`omics:${wf}`);
+    try {
+      toast.success(await openOmicsSample(wf));
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const openDataset = async (name: string) => {
     setBusy(`ds:${name}`);
     try {
@@ -96,6 +129,7 @@ export function Connect() {
     <div className="relative flex h-full w-full items-start justify-center overflow-y-auto bg-bg">
       <SignalField />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-bg/35 to-bg/95" />
+      <ThemeToggle className="fixed right-2 top-2 z-20 p-2" />
 
       <div className="relative my-auto w-full max-w-[680px] px-6 py-12">
         {/* ---- the mark, centred, carrying the identity on its own ---- */}
@@ -151,8 +185,8 @@ export function Connect() {
             onDrop={(e) => {
               e.preventDefault();
               setDrag(false);
-              const f = e.dataTransfer.files[0];
-              if (f) run("upload", () => api.uploadFile(f));
+              const files = Array.from(e.dataTransfer.files);
+              if (files.length) openFiles(files);
             }}
             onClick={() => fileRef.current?.click()}
             className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-sm border border-dashed bg-panel/40 px-6 py-9 text-center backdrop-blur-[2px] transition-colors ${
@@ -160,13 +194,16 @@ export function Connect() {
             }`}
           >
             {busy === "upload" ? <Loader2 className="animate-spin text-fg-dim" /> : <UploadCloud className="text-fg-dim" />}
-            <span className="text-sm text-fg-dim">Drop a recording, or click to browse</span>
+            <span className="text-sm text-fg-dim">Drop a recording or an expression dataset</span>
             <span className="text-2xs leading-relaxed text-fg-faint">{FORMATS}</span>
+            <span className="text-2xs leading-relaxed text-fg-faint">{OMICS_FORMATS}</span>
+            <span className="text-2xs text-fg-faint/80">the format picks the workbench</span>
             <input
               ref={fileRef}
               type="file"
+              multiple
               className="hidden"
-              onChange={(e) => e.target.files?.[0] && run("upload", () => api.uploadFile(e.target.files![0]))}
+              onChange={(e) => { const fs = Array.from(e.target.files ?? []); if (fs.length) openFiles(fs); e.target.value = ""; }}
             />
           </div>
 
@@ -180,6 +217,24 @@ export function Connect() {
               {busy === "demo" ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
               Synthetic sample (offline)
             </button>
+
+            {/* the omics benches open on their own synthetic runs: no download */}
+            <div className="mt-1 text-2xs uppercase tracking-wide text-fg-faint">RNA-seq samples, synthetic</div>
+            {([
+              { wf: "bulk" as const, label: "Bulk RNA-seq · dentate gyrus", bench: "Plethos", Icon: Dna },
+              { wf: "snrna" as const, label: "snRNA-seq · hippocampus", bench: "Karyon", Icon: Microscope },
+            ]).map(({ wf, label, bench, Icon }) => (
+              <button
+                key={wf}
+                onClick={() => openSample(wf)}
+                disabled={!!busy}
+                title={`Opens in ${bench}`}
+                className="flex items-center justify-between gap-2 rounded-xs border border-seam px-2 py-1.5 text-left text-xs text-fg-dim transition-colors hover:border-fg-faint hover:text-fg disabled:opacity-50"
+              >
+                <span className="flex min-w-0 items-center gap-1.5 truncate"><Icon size={11} className="shrink-0 text-fg-faint" />{label}</span>
+                {busy === `omics:${wf}` ? <Loader2 size={11} className="shrink-0 animate-spin" /> : <span className="mono shrink-0 text-2xs text-fg-faint">{bench}</span>}
+              </button>
+            ))}
 
             {/* The caption only appears with something under it. It used to be
                 static, so a failed fetch left it heading an empty box. */}

@@ -38,7 +38,7 @@ export function Wizard({
     <div className="pop w-[420px] overflow-hidden">
       <header className="flex items-center justify-between border-b border-seam px-4 py-2.5">
         <span className="text-md font-semibold text-fg">{title}</span>
-        <button onClick={onClose} className="rounded-xs p-0.5 text-fg-faint hover:bg-panel-2 hover:text-fg">
+        <button onClick={onClose} aria-label="Close" className="rounded-xs p-0.5 text-fg-faint hover:bg-panel-2 hover:text-fg">
           <X size={15} />
         </button>
       </header>

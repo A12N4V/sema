@@ -163,14 +163,27 @@ test.describe("the figures are handled, not just displayed", () => {
   test("the spectrum reads out a value under the pointer", async ({ page, isMobile }) => {
     test.skip(!!isMobile, "no pointer to hover with");
     await openDemo(page);
-    const spectrum = page.locator("canvas").last();
+    // the spectrum, not the overview strip that now sits last on the page
+    const spectrum = page.locator("canvas.cursor-crosshair").last();
     await expect(spectrum).toBeVisible();
-    const box = (await spectrum.boundingBox())!;
     // the readout is painted into the canvas, so assert the canvas repainted
-    const before = await spectrum.screenshot();
-    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
-    await page.waitForTimeout(200);
-    expect(Buffer.compare(before, await spectrum.screenshot())).not.toBe(0);
+    // wait for the plot to settle first, or a late PSD paint passes or fails at random
+    await page.waitForLoadState("networkidle");
+    let before = await spectrum.screenshot();
+    await expect.poll(async () => {
+      const now = await spectrum.screenshot();
+      const same = Buffer.compare(before, now) === 0;
+      before = now;
+      return same;
+    }, { timeout: 15000 }).toBe(true);
+    let x = 0.5;
+    await expect.poll(async () => {
+      x = x === 0.5 ? 0.6 : 0.5;
+      // re-read the box: the panes settle their split after the first paint
+      const box = (await spectrum.boundingBox())!;
+      await page.mouse.move(box.x + box.width * x, box.y + box.height * 0.5);
+      return Buffer.compare(before, await spectrum.screenshot()) !== 0;
+    }, { timeout: 5000 }).toBe(true);
   });
 });
 

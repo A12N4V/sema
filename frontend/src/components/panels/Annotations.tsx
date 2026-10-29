@@ -104,7 +104,7 @@ export function Annotations() {
               list="annotation-labels"
               aria-label="Annotation label"
               className="mono w-[14ch] rounded-xs border border-seam bg-bg px-1.5 py-1 text-xs
-                         outline-none focus:border-accent"
+                         focus:border-accent"
             />
             <datalist id="annotation-labels">
               {(data?.labels ?? []).map((l) => <option key={l} value={l} />)}
@@ -121,7 +121,7 @@ export function Annotations() {
                 onKeyDown={(e) => e.key === "Enter" && add()}
                 inputMode="decimal"
                 aria-label="Annotation duration"
-                className="mono w-[4ch] bg-transparent text-xs outline-none"
+                className="mono w-[4ch] bg-transparent text-xs"
               />
               <span className="text-2xs text-fg-faint">s</span>
             </span>

@@ -28,7 +28,7 @@ def fit(session_id: str, req: ICAFitRequest) -> dict:
         raise HTTPException(status_code=422, detail=f"ICA fit failed: {e}")
     with session.lock:
         return {
-            "n_components": session.ica.n_components_,
+            "n_components": int(session.ica.n_components_),
             "method": req.method,
             "components": ica_ops.attach_labels(
                 ica_ops.component_summary(session.ica, session.raw), session.ica_labels),
