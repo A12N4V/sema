@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { palette } from "./palette";
 import { fmt, makeView, ticks, type Domain, type View } from "./scales";
 import { useStore } from "../../store";
+import { useStore as useShell } from "../../../store/store";
 
 /**
  * The one canvas every interactive figure draws on. It owns sizing, the zoom
@@ -62,6 +63,7 @@ export function PlotCanvas({ zkey, home, draw, hit, onPick, x, y, margin, lock, 
   const [box, setBox] = useState<{ a: [number, number]; b: [number, number] } | null>(null);
   const [boxMode, setBoxMode] = useState(false);
   const zoomTick = useStore((s) => s.zoomTick);
+  const themeTick = useShell((s) => s.themeTick);   // repaint in the new ink
   const homeKey = `${home.x0},${home.x1},${home.y0},${home.y1}`;
 
   // a new home (new data, new settings) resets the view
@@ -137,7 +139,7 @@ export function PlotCanvas({ zkey, home, draw, hit, onPick, x, y, margin, lock, 
     draw(ctx, view);
     ctx.restore();
     ctx.strokeStyle = p.seamBright; ctx.strokeRect(view.l + 0.5, view.t + 0.5, view.w - 1, view.h - 1);
-  }, [view, draw, size, x, y, m.l]);
+  }, [view, draw, size, x, y, m.l, themeTick]);
 
   // ---- gestures
   const zoomAt = useCallback((px: number, py: number, f: number, axes: "xy" | "x" | "y" = "xy") => {

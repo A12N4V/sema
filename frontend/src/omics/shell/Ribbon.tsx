@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ThemeToggle } from "../../components/ui/ThemeToggle";
 import { clsx } from "clsx";
 import { BoxSelect, ChevronDown, ChevronUp, Download, FlaskConical, FolderOpen, FolderPlus, Minus, Play, Plus, RotateCcw, Square, Trash2, Upload, X } from "lucide-react";
 import { Mark } from "../../components/ui/Brand";
@@ -108,6 +109,7 @@ function RunControls() {
         {!runs.length && <option value="">no runs</option>}
         {runs.map((r) => <option key={r.id} value={r.id}>{r.id.slice(4, 15)} · {r.engine} · {r.status}</option>)}
       </select>
+      <ThemeToggle />
       <button onClick={() => navigate("/connect")} title="Open another dataset" aria-label="Open another dataset"
               className="flex shrink-0 items-center px-2 text-fg-faint transition-colors hover:text-fg">
         <FolderOpen size={14} />

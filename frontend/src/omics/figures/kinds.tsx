@@ -179,7 +179,7 @@ function legendBox(ctx: CanvasRenderingContext2D, v: View, items: { name: string
   const w = Math.min(180, 18 + Math.max(...shown.map((i) => ctx.measureText(i.name).width)));
   const h = shown.length * 14 + 8;
   const x = v.l + v.w - w - 6, y = v.t + 6;
-  ctx.fillStyle = "rgba(10,11,14,0.82)"; ctx.fillRect(x, y, w, h);
+  ctx.globalAlpha = 0.85; ctx.fillStyle = p.panel; ctx.fillRect(x, y, w, h); ctx.globalAlpha = 1;
   ctx.strokeStyle = p.seam; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
   shown.forEach((it, i) => {
     ctx.fillStyle = it.color; ctx.fillRect(x + 6, y + 8 + i * 14, 7, 7);

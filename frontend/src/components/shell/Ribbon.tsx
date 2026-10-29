@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ThemeToggle } from "../ui/ThemeToggle";
 import {
   ChevronDown, ChevronUp, FileCode2, FileDown, FolderOpen, Loader2, Lock,
   Menu, Search, Settings2, Table2,
@@ -121,6 +122,7 @@ export function Ribbon({ onNewSession }: { onNewSession: () => void }) {
           <span className="mono text-2xs max-[900px]:hidden">⌘K</span>
         </button>
         <SessionChip />
+        <ThemeToggle />
         <button onClick={onNewSession} title="Open another recording" aria-label="New session"
                 className="flex shrink-0 items-center px-2 text-fg-faint transition-colors hover:text-fg">
           <FolderOpen size={14} />

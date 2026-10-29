@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ThemeToggle } from "../ui/ThemeToggle";
 import { toast } from "sonner";
 import { UploadCloud, Play, Loader2, Download, ArrowRight, PlugZap, Dna, Microscope } from "lucide-react";
 import { detect } from "../../lib/detect";
@@ -128,6 +129,7 @@ export function Connect() {
     <div className="relative flex h-full w-full items-start justify-center overflow-y-auto bg-bg">
       <SignalField />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-bg/35 to-bg/95" />
+      <ThemeToggle className="fixed right-2 top-2 z-20 p-2" />
 
       <div className="relative my-auto w-full max-w-[680px] px-6 py-12">
         {/* ---- the mark, centred, carrying the identity on its own ---- */}

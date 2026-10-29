@@ -8,9 +8,13 @@ export interface Palette {
   up: string; down: string; ns: string; alert: string; warn: string; good: string;
 }
 
-let cache: Palette | null = null;
+// Keyed on the theme in force, so the header toggle and an OS switch both
+// repaint in the new ink without anyone having to clear it.
+let cache: Palette | null = null, cacheKey = "";
 export function palette(): Palette {
-  if (cache) return cache;
+  const key = (document.documentElement.dataset.theme ?? "") + matchMedia("(prefers-color-scheme: light)").matches;
+  if (cache && key === cacheKey) return cache;
+  cacheKey = key;
   const s = getComputedStyle(document.documentElement);
   const v = (n: string, d: string) => s.getPropertyValue(n).trim() || d;
   cache = {
@@ -23,7 +27,6 @@ export function palette(): Palette {
   };
   return cache;
 }
-matchMedia("(prefers-color-scheme: light)").addEventListener?.("change", () => { cache = null; });
 
 /** Reference group in the ground's dim tone, test group in Okabe-Ito green (the scripts' "green" palette). */
 export function groupColor(g: string, order: string[]): string {
